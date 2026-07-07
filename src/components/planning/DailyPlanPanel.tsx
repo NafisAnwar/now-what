@@ -381,7 +381,9 @@ export default function DailyPlanPanel() {
       {plan && (
         <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border)', marginTop: '4px' }}>
           <span className="mono" style={{ fontSize: '10px', color: 'var(--dim)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-            {'REVIEW: '}
+            REVIEW:{' '}
+          </span>
+          <span className="mono" style={{ fontSize: '10px', color: 'var(--secondary)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
             {plan.reviewStatus === 'complete' ? 'COMPLETE'
               : plan.reviewStatus === 'in_progress' ? 'IN PROGRESS'
               : 'NOT STARTED'}

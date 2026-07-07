@@ -8,9 +8,9 @@
   --border-mid: #282828;
   --border-hi: #383838;
   --muted: #3a3a3a;
-  --dim: #666666;
-  --secondary: #999999;
-  --body: #c0c0c0;
+  --dim: #767676;
+  --secondary: #adadad;
+  --body: #d0d0d0;
   --primary: #f0f0f0;
   --white: #ffffff;
   --error: #b22222;
@@ -93,16 +93,16 @@ body::before {
 }
 
 @media (max-width: 767px) {
-  /* Hamburger visible, shortcuts hidden */
+  /* Hamburger visible */
   .hamburger-btn { display: block !important; }
-  .shortcuts-hint { display: none !important; }
 
   /* Sidebar: hidden off-screen, slides in when open */
   .sidebar {
     position: fixed !important;
-    top: 44px;
+    top: 48px;
     left: 0;
     bottom: 0;
+    width: 220px !important;
     transform: translateX(-100%);
     box-shadow: 4px 0 24px rgba(0,0,0,0.5);
   }

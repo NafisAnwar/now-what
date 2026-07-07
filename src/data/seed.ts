@@ -5,13 +5,7 @@ import { getTodayStr, getYesterdayStr } from '../utils/dateUtils';
 const MANUAL_CLEAR_KEY = 'nowwhat_manual_clear';
 
 export async function seedIfEmpty() {
-  // If the user explicitly cleared data, do not auto-seed on reload
-  if (localStorage.getItem(MANUAL_CLEAR_KEY) === '1') return;
-
-  const count = await db.tasks.count();
-  if (count > 0) return; // already seeded or has real data
-
-  await _seed();
+  // Normal launches start clean. Demo data is only inserted by explicit reset.
 }
 
 export async function reseedWithDemoData() {

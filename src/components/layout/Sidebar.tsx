@@ -40,7 +40,7 @@ export default function Sidebar({ isOpen, onClose }: Props) {
       <aside
         className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}
         style={{
-          width: '220px',
+          width: '176px',
           borderRight: '1px solid var(--border)',
           backgroundColor: 'var(--surface)',
           display: 'flex',

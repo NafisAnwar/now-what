@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'wouter';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -30,12 +31,12 @@ export default function Topbar({ onMenuToggle, isOnline, installPrompt, onInstal
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      height: '44px',
-      padding: '0 12px',
+      height: '48px',
+      padding: '0 16px',
       borderBottom: '1px solid var(--border)',
       backgroundColor: 'var(--surface)',
       flexShrink: 0,
-      gap: '8px',
+      gap: '16px',
     }}>
       {/* Left: hamburger (mobile) + app name */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
@@ -56,17 +57,22 @@ export default function Topbar({ onMenuToggle, isOnline, installPrompt, onInstal
         >
           ☰
         </button>
-        <div className="mono" style={{ color: 'var(--white)', textTransform: 'uppercase', fontSize: '13px', whiteSpace: 'nowrap' }}>
+        <Link
+          href="/"
+          className="mono"
+          style={{
+            color: 'var(--white)',
+            textTransform: 'uppercase',
+            fontSize: '14.5px',
+            whiteSpace: 'nowrap',
+            textDecoration: 'none',
+          }}
+        >
           NOW_WHAT?
-        </div>
+        </Link>
       </div>
 
-      {/* Center: clock */}
-      <div className="mono" style={{ fontSize: '13px', letterSpacing: '0.05em', flexShrink: 0 }}>
-        {time}
-      </div>
-
-      {/* Right: status + shortcuts + install */}
+      {/* Right: status + install + clock */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
         {/* Offline indicator */}
         {!isOnline && (
@@ -99,9 +105,9 @@ export default function Topbar({ onMenuToggle, isOnline, installPrompt, onInstal
           </button>
         )}
 
-        {/* Keyboard shortcuts hint — desktop only */}
-        <div className="mono label shortcuts-hint" style={{ color: 'var(--dim)' }}>
-          T &middot; H &middot; G &middot; L &middot; N
+        {/* Clock */}
+        <div className="mono" style={{ fontSize: '13px', letterSpacing: '0.05em', color: 'var(--body)', flexShrink: 0 }}>
+          {time}
         </div>
       </div>
     </header>
