@@ -85,6 +85,13 @@ export default function App() {
   // Register service worker for offline support
   useEffect(() => {
     if ('serviceWorker' in navigator) {
+      if (import.meta.env.DEV) {
+        navigator.serviceWorker.getRegistrations()
+          .then(registrations => Promise.all(registrations.map(reg => reg.unregister())))
+          .catch(err => console.log('[sw] dev unregister skipped:', err.message));
+        return;
+      }
+
       const swUrl = import.meta.env.BASE_URL + 'service-worker.js';
       navigator.serviceWorker.register(swUrl)
         .then(reg => console.log('[sw] registered, scope:', reg.scope))

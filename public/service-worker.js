@@ -1,5 +1,7 @@
 // NOW_WHAT? Service Worker - nowwhat-shell-v0.9.1
 const CACHE_NAME = 'nowwhat-shell-v0.9.1';
+const DEV_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+const IS_DEV_HOST = DEV_HOSTS.has(self.location.hostname);
 const FONT_ORIGINS = new Set([
   'https://fonts.googleapis.com',
   'https://fonts.gstatic.com',
@@ -114,6 +116,11 @@ async function cacheFirst(request) {
 }
 
 self.addEventListener('install', event => {
+  if (IS_DEV_HOST) {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+
   event.waitUntil(
     cacheAppShell()
       .catch(err => {
@@ -124,6 +131,16 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
+  if (IS_DEV_HOST) {
+    event.waitUntil(
+      caches.keys()
+        .then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        .then(() => self.registration.unregister())
+        .then(() => self.clients.claim())
+    );
+    return;
+  }
+
   event.waitUntil(
     caches.keys()
       .then(keys =>
@@ -141,6 +158,8 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
+  if (IS_DEV_HOST) return;
+
   const req = event.request;
 
   // Only handle GET requests.
