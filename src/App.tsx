@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { Route, Switch, Router as WouterRouter, useLocation } from 'wouter';
-import { seedIfEmpty } from './data/seed';
 import AppShell from './components/layout/AppShell';
 import Dashboard from './components/dashboard/Dashboard';
 import TasksPage from './components/tasks/TasksPage';
@@ -52,19 +51,23 @@ function NotFound() {
 }
 
 function Router() {
+  const [location] = useLocation();
+
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/tasks" component={TasksPage} />
-      <Route path="/habits" component={HabitsPage} />
-      <Route path="/goals" component={GoalsPage} />
-      <Route path="/calendar" component={CalendarPage} />
-      <Route path="/review" component={DailyReviewPage} />
-      <Route path="/timeline" component={Timeline} />
-      <Route path="/data" component={DataPage} />
-      <Route path="/reminders" component={RemindersPage} />
-      <Route component={NotFound} />
-    </Switch>
+    <div key={location} className="route-transition">
+      <Switch>
+        <Route path="/" component={Dashboard} />
+        <Route path="/tasks" component={TasksPage} />
+        <Route path="/habits" component={HabitsPage} />
+        <Route path="/goals" component={GoalsPage} />
+        <Route path="/calendar" component={CalendarPage} />
+        <Route path="/review" component={DailyReviewPage} />
+        <Route path="/timeline" component={Timeline} />
+        <Route path="/data" component={DataPage} />
+        <Route path="/reminders" component={RemindersPage} />
+        <Route component={NotFound} />
+      </Switch>
+    </div>
   );
 }
 
@@ -88,7 +91,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    seedIfEmpty().then(() => setIsSeeded(true));
+    setIsSeeded(true);
   }, []);
 
   // Reminder scheduler: run on seed, every 5 min, and on engine regen events

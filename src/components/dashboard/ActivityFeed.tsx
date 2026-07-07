@@ -48,7 +48,7 @@ export default function ActivityFeed() {
           );
         })}
         {displayLogs.length === 0 && (
-          <div className="mono label" style={{ color: 'var(--dim)' }}>No activity yet</div>
+          <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)' }}>No activity logged.</div>
         )}
       </div>
     </div>

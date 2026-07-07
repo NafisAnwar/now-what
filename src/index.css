@@ -77,6 +77,25 @@ body::before {
 /* Transitions */
 * { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
 
+@keyframes route-resolve {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes hud-text-resolve {
+  from { opacity: 0.62; }
+  to { opacity: 1; }
+}
+
+.route-transition {
+  animation: route-resolve 150ms ease-out;
+}
+
+.nowwhat-compute {
+  animation: hud-text-resolve 180ms ease-out;
+  letter-spacing: 0.08em;
+}
+
 /* ── Reduced motion ──────────────────────────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
@@ -84,6 +103,13 @@ body::before {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+  .route-transition {
+    animation: none !important;
+    transform: none !important;
+  }
+  .nowwhat-compute {
+    animation: none !important;
   }
 }
 

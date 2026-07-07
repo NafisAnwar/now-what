@@ -1,37 +1,97 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { generateWithDebugInfo, acceptSuggestion, dismissSuggestion, completeSuggestion } from '../../engine/nowWhat';
 import { db } from '../../data/db';
-import { Suggestion } from '../../types';
+import type { Context } from '../../engine/nowWhat';
+import type { Suggestion } from '../../types';
 import { localDateStr } from '../../utils/dateUtils';
+
+const COMPUTING_MESSAGES = ['COMPUTING', 'SCANNING CONTEXT', 'RESOLVING NEXT ACTION'];
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function isEmptyContext(context: Context | null): boolean {
+  if (!context) return false;
+
+  const hasTrackedActivity =
+    context.completedTasksToday > 0 ||
+    context.waterMlToday > 0 ||
+    context.focusMinutesToday > 0 ||
+    context.restMinutesToday > 0 ||
+    context.movementMinutesToday > 0 ||
+    context.distractionMinutesToday > 0 ||
+    context.lastEnergyValue !== null ||
+    context.lastMoodValue !== null;
+
+  return (
+    context.pendingTasks.length === 0 &&
+    context.pendingHabitsAny.length === 0 &&
+    context.activeGoals.length === 0 &&
+    context.todaysCalendarBlocks.length === 0 &&
+    context.plannedTaskIds.length === 0 &&
+    context.plannedHabitIds.length === 0 &&
+    !context.primaryFocus &&
+    !context.yesterdayReviewIncomplete &&
+    !hasTrackedActivity
+  );
+}
 
 export default function NowWhatCard() {
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
+  const [context, setContext] = useState<Context | null>(null);
   const [loading, setLoading] = useState(true);
+  const [computingStep, setComputingStep] = useState(0);
   const generatingRef = useRef(false);
 
   const generate = useCallback(async (showLoading = true) => {
     if (generatingRef.current) return;
     generatingRef.current = true;
+    const startedAt = Date.now();
     if (showLoading) setLoading(true);
 
     try {
       const { suggestion: newSug, context, candidates } = await generateWithDebugInfo();
       setSuggestion(newSug);
+      setContext(context);
       window.dispatchEvent(new CustomEvent('engine_debug_update', {
         detail: { context, candidates, suggestion: newSug }
       }));
     } catch (err) {
       console.error('[nowwhat] generation failed:', err);
     } finally {
-      if (showLoading) setLoading(false);
+      if (showLoading) {
+        const minDuration = prefersReducedMotion() ? 80 : 560;
+        const remaining = minDuration - (Date.now() - startedAt);
+        if (remaining > 0) await wait(remaining);
+        setLoading(false);
+      }
       generatingRef.current = false;
     }
   }, []);
 
   useEffect(() => {
+    if (!loading) {
+      setComputingStep(0);
+      return;
+    }
+    if (prefersReducedMotion()) return;
+
+    const interval = setInterval(() => {
+      setComputingStep(step => (step + 1) % COMPUTING_MESSAGES.length);
+    }, 180);
+
+    return () => clearInterval(interval);
+  }, [loading]);
+
+  useEffect(() => {
     generate();
 
-    const handleRegen = () => generate(false);
+    const handleRegen = () => generate();
     const handleFocus = () => generate(false);
     const handleVisibility = () => {
       if (!document.hidden) generate(false);
@@ -62,14 +122,23 @@ export default function NowWhatCard() {
         justifyContent: 'center',
         marginBottom: '32px'
       }}>
-        <div className="mono" style={{ color: 'var(--dim)', textTransform: 'uppercase' }}>
-          COMPUTING...
+        <div className="mono nowwhat-compute" style={{ color: 'var(--secondary)', textTransform: 'uppercase' }}>
+          {COMPUTING_MESSAGES[computingStep]}
         </div>
       </div>
     );
   }
 
   if (!suggestion) return null;
+
+  const emptyState = isEmptyContext(context);
+  const display = emptyState
+    ? {
+        command: 'NO AVAILABLE TASKS',
+        targetLabel: 'Add a task to use this feature.',
+        reason: 'No tasks, habits, or scheduled actions are available.',
+      }
+    : suggestion;
 
   return (
     <div style={{
@@ -102,17 +171,18 @@ export default function NowWhatCard() {
 
       <div style={{ margin: '16px 0' }}>
         <div className="mono" style={{ fontSize: '24px', color: 'var(--primary)', textTransform: 'uppercase', marginBottom: '8px' }}>
-          {suggestion.command}
+          {display.command}
         </div>
         <div className="mono" style={{ fontSize: '16px', color: 'var(--white)', marginBottom: '8px' }}>
-          {suggestion.targetLabel}
+          {display.targetLabel}
         </div>
         <div style={{ fontSize: '12px', color: 'var(--secondary)' }}>
-          {suggestion.reason}
+          {display.reason}
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: '12px' }}>
+      {!emptyState && (
+        <div style={{ display: 'flex', gap: '12px' }}>
         <button
           onClick={async () => {
             await acceptSuggestion(suggestion.id);
@@ -187,6 +257,7 @@ export default function NowWhatCard() {
               { actionType: suggestion.actionType, targetId: suggestion.targetId }
             ]);
             setSuggestion(newSug);
+            setContext(context);
             window.dispatchEvent(new CustomEvent('engine_debug_update', {
               detail: { context, candidates, suggestion: newSug }
             }));
@@ -204,7 +275,8 @@ export default function NowWhatCard() {
         >
           [DISMISS]
         </button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

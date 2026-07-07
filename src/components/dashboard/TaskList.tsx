@@ -37,7 +37,7 @@ export default function TaskList() {
           <TaskRow key={task.id} task={task} onComplete={() => handleComplete(task)} />
         ))}
         {tasks.length === 0 && (
-          <div className="mono label" style={{ color: 'var(--dim)', padding: '8px 0' }}>No pending tasks</div>
+          <div className="mono label" style={{ color: 'var(--dim)', padding: '8px 0' }}>No tasks added.</div>
         )}
       </div>
       <button 

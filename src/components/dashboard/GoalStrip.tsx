@@ -8,7 +8,7 @@ export default function GoalStrip() {
   const allTasks = useLiveQuery(() => db.tasks.toArray(), []);
   const allHabits = useLiveQuery(() => db.habits.toArray(), []);
 
-  if (!activeGoals || activeGoals.length === 0) return null;
+  if (!activeGoals) return null;
 
   const todayStr = getTodayStr();
   const MAX_VISIBLE = 4;
@@ -27,6 +27,12 @@ export default function GoalStrip() {
       }}>
         ACTIVE GOALS
       </div>
+
+      {activeGoals.length === 0 && (
+        <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)' }}>
+          No active goals.
+        </div>
+      )}
 
       {visibleGoals.map(goal => {
         const linkedTasks = (allTasks || []).filter(t => (goal.linkedTaskIds || []).includes(t.id));

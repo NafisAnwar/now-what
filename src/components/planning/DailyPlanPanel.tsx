@@ -151,7 +151,7 @@ export default function DailyPlanPanel() {
         <div style={sectionLabel}>TASKS</div>
         {plannedTasks.length === 0 ? (
           <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)', marginBottom: '8px' }}>
-            none planned
+            No tasks added.
           </div>
         ) : (
           plannedTasks.map(task => (
@@ -231,7 +231,7 @@ export default function DailyPlanPanel() {
         <div style={sectionLabel}>HABITS</div>
         {plannedHabits.length === 0 ? (
           <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)', marginBottom: '8px' }}>
-            none planned
+            No habits added.
           </div>
         ) : (
           plannedHabits.map(habit => (
@@ -310,7 +310,7 @@ export default function DailyPlanPanel() {
       <div style={{ marginBottom: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--border)' }}>
         <div style={sectionLabel}>CALENDAR BLOCKS</div>
         {plannedBlocks.length === 0 ? (
-          <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)', marginBottom: '8px' }}>none added</div>
+          <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)', marginBottom: '8px' }}>No calendar blocks added.</div>
         ) : plannedBlocks.map(block => {
           const fmt = (iso: string) => iso.includes('T') ? iso.split('T')[1].slice(0, 5) : iso;
           return (

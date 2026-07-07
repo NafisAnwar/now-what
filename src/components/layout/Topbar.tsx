@@ -13,7 +13,7 @@ interface Props {
   onInstall: () => void;
 }
 
-export default function Topbar({ onMenuToggle, isOnline, installPrompt, onInstall }: Props) {
+export default function Topbar({ onMenuToggle, isOnline }: Props) {
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -82,27 +82,6 @@ export default function Topbar({ onMenuToggle, isOnline, installPrompt, onInstal
           >
             OFFLINE
           </span>
-        )}
-
-        {/* Install prompt */}
-        {installPrompt && (
-          <button
-            onClick={onInstall}
-            className="mono topbar-install"
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              color: 'var(--dim)',
-              fontSize: '10px',
-              padding: '2px 8px',
-              cursor: 'pointer',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            INSTALL APP
-          </button>
         )}
 
         {/* Clock */}
