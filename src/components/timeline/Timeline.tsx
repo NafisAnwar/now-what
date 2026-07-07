@@ -2,7 +2,7 @@ import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import type { ActivityLog } from '../../types';
-import { getTodayStr } from '../../utils/dateUtils';
+import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
 
 export default function Timeline() {
   const todayStr = getTodayStr();
@@ -21,8 +21,8 @@ export default function Timeline() {
 
   const displayLogs = logs.slice(0, 100);
   
-  const todayLogs = displayLogs.filter(log => log.createdAt.startsWith(todayStr));
-  const earlierLogs = displayLogs.filter(log => !log.createdAt.startsWith(todayStr));
+  const todayLogs = displayLogs.filter(log => isLocalDate(log.createdAt, todayStr));
+  const earlierLogs = displayLogs.filter(log => !isLocalDate(log.createdAt, todayStr));
 
   const renderLog = (log: ActivityLog) => {
     const time = new Date(log.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });

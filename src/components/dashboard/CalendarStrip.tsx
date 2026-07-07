@@ -1,16 +1,16 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
-import { getTodayStr } from '../../utils/dateUtils';
+import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
 
 export default function CalendarStrip() {
   const todayStr = getTodayStr();
   const todaysBlocks = useLiveQuery(
-    () => db.calendarBlocks.filter(b => b.startAt.startsWith(todayStr)).toArray(),
+    () => db.calendarBlocks.filter(b => isLocalDate(b.startAt, todayStr)).toArray(),
     [todayStr]
   ) || [];
 
-  const nowIso = new Date().toISOString();
+  const nowMs = Date.now();
   const sorted = [...todaysBlocks].sort((a, b) => a.startAt.localeCompare(b.startAt));
 
   if (sorted.length === 0) return null;
@@ -34,7 +34,7 @@ export default function CalendarStrip() {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {sorted.map(block => {
-          const active = nowIso >= block.startAt && nowIso <= block.endAt;
+          const active = nowMs >= new Date(block.startAt).getTime() && nowMs <= new Date(block.endAt).getTime();
           return (
             <div key={block.id} className="mono" style={{ fontSize: '12px', color: 'var(--dim)' }}>
               {fmt(block.startAt)}–{fmt(block.endAt)}&nbsp;&nbsp;{block.title}{active ? '  [NOW]' : ''}

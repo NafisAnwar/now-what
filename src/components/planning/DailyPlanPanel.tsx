@@ -13,7 +13,7 @@ import {
   removeCalendarBlockFromPlan,
 } from '../../engine/dailyPlan';
 import type { Task, Habit, CalendarBlock } from '../../types';
-import { useTodayStr } from '../../utils/dateUtils';
+import { isLocalDate, useTodayStr } from '../../utils/dateUtils';
 
 export default function DailyPlanPanel() {
   const todayStr = useTodayStr();
@@ -53,7 +53,7 @@ export default function DailyPlanPanel() {
     .filter(Boolean) as CalendarBlock[];
 
   const unplannedTodayBlocks = allBlocks.filter(b =>
-    b.startAt.startsWith(todayStr) && !(plan?.calendarBlockIds || []).includes(b.id)
+    isLocalDate(b.startAt, todayStr) && !(plan?.calendarBlockIds || []).includes(b.id)
   );
 
   const handleSaveFocus = async () => {

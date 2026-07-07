@@ -36,7 +36,7 @@ export default function RemindersPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)', marginBottom: '20px' }}>
+      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)', marginBottom: '20px', overflowX: 'auto' }}>
         {tabs.map(t => (
           <button
             key={t}
@@ -52,6 +52,8 @@ export default function RemindersPage() {
               cursor: 'pointer',
               textTransform: 'uppercase',
               letterSpacing: '0.06em',
+              whiteSpace: 'nowrap',
+              flexShrink: 0,
             }}
           >
             {t}{counts[t] !== null && counts[t]! > 0 ? ` (${counts[t]})` : ''}

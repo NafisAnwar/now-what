@@ -8,6 +8,19 @@ export function localDateStr(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/** Local YYYY-MM-DD for stored timestamps, including ISO UTC strings. */
+export function localDateFromTimestamp(value: string): string {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return value.split('T')[0] || value;
+  return localDateStr(d);
+}
+
+/** True when a stored timestamp falls on the given local YYYY-MM-DD. */
+export function isLocalDate(value: string, dateStr: string): boolean {
+  return localDateFromTimestamp(value) === dateStr;
+}
+
 /** Today's date as a local YYYY-MM-DD string. */
 export function getTodayStr(): string {
   return localDateStr(new Date());

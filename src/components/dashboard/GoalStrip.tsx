@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
-import { getTodayStr } from '../../utils/dateUtils';
+import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
 
 export default function GoalStrip() {
   const activeGoals = useLiveQuery(() => db.goals.where('status').equals('active').toArray(), []);
@@ -31,7 +31,7 @@ export default function GoalStrip() {
       {visibleGoals.map(goal => {
         const linkedTasks = (allTasks || []).filter(t => (goal.linkedTaskIds || []).includes(t.id));
         const completedLinkedTasksToday = linkedTasks.filter(
-          t => t.status === 'complete' && t.completedAt?.startsWith(todayStr)
+          t => t.status === 'complete' && !!t.completedAt && isLocalDate(t.completedAt, todayStr)
         ).length;
 
         const linkedHabits = (allHabits || []).filter(h => (goal.linkedHabitIds || []).includes(h.id));

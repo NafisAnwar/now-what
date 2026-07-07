@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { generateWithDebugInfo, acceptSuggestion, dismissSuggestion, completeSuggestion } from '../../engine/nowWhat';
 import { db } from '../../data/db';
 import { Suggestion } from '../../types';
@@ -7,24 +7,48 @@ import { localDateStr } from '../../utils/dateUtils';
 export default function NowWhatCard() {
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [loading, setLoading] = useState(true);
+  const generatingRef = useRef(false);
 
-  const generate = async () => {
-    setLoading(true);
-    const { suggestion: newSug, context, candidates } = await generateWithDebugInfo();
-    setSuggestion(newSug);
-    window.dispatchEvent(new CustomEvent('engine_debug_update', {
-      detail: { context, candidates, suggestion: newSug }
-    }));
-    setLoading(false);
-  };
+  const generate = useCallback(async (showLoading = true) => {
+    if (generatingRef.current) return;
+    generatingRef.current = true;
+    if (showLoading) setLoading(true);
+
+    try {
+      const { suggestion: newSug, context, candidates } = await generateWithDebugInfo();
+      setSuggestion(newSug);
+      window.dispatchEvent(new CustomEvent('engine_debug_update', {
+        detail: { context, candidates, suggestion: newSug }
+      }));
+    } catch (err) {
+      console.error('[nowwhat] generation failed:', err);
+    } finally {
+      if (showLoading) setLoading(false);
+      generatingRef.current = false;
+    }
+  }, []);
 
   useEffect(() => {
     generate();
 
-    const handleRegen = () => generate();
+    const handleRegen = () => generate(false);
+    const handleFocus = () => generate(false);
+    const handleVisibility = () => {
+      if (!document.hidden) generate(false);
+    };
+    const interval = setInterval(() => generate(false), 5 * 60 * 1000);
+
     window.addEventListener('regenerate_now_what', handleRegen);
-    return () => window.removeEventListener('regenerate_now_what', handleRegen);
-  }, []);
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('regenerate_now_what', handleRegen);
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [generate]);
 
   if (loading) {
     return (
@@ -62,7 +86,7 @@ export default function NowWhatCard() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div className="label">NOW_WHAT?</div>
         <button
-          onClick={generate}
+          onClick={() => generate()}
           className="mono"
           style={{
             background: 'none',

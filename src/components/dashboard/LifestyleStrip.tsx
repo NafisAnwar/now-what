@@ -1,16 +1,13 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
-import { getTodayStr } from '../../utils/dateUtils';
+import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
 
 export default function LifestyleStrip() {
   const todayStr = getTodayStr();
   
   const logs = useLiveQuery(
-    () => db.activityLogs
-      .where('createdAt')
-      .startsWith(todayStr)
-      .toArray()
+    () => db.activityLogs.filter(l => isLocalDate(l.createdAt, todayStr)).toArray()
   );
 
   if (!logs) return null;

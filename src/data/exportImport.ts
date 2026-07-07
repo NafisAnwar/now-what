@@ -4,6 +4,11 @@ import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggesti
 export const EXPORT_VERSION = 1;
 export const SCHEMA_VERSION = 2;
 export const APP_NAME = 'NOW_WHAT?';
+const MANUAL_CLEAR_KEY = 'nowwhat_manual_clear';
+const STORE_NAMES = [
+  'tasks', 'habits', 'goals', 'calendarBlocks', 'activityLogs',
+  'dailyPlans', 'suggestions', 'dailyReviews', 'weeklyReviews', 'settings', 'reminders',
+] as const;
 
 export interface NowWhatBackup {
   app: string;
@@ -143,7 +148,7 @@ export function validateBackup(data: unknown): ValidationResult {
     return { valid: false, reason: 'Backup structure not recognized.' };
   }
   // Accept backups from schema versions 1 and 2 (v1 has no reminders — safe to import as empty)
-  if (typeof obj.schemaVersion !== 'number' || obj.schemaVersion > SCHEMA_VERSION) {
+  if (!Number.isInteger(obj.schemaVersion) || (obj.schemaVersion as number) < 1 || (obj.schemaVersion as number) > SCHEMA_VERSION) {
     return { valid: false, reason: 'Backup schema not supported.' };
   }
   if (!obj.stores || typeof obj.stores !== 'object') {
@@ -151,14 +156,28 @@ export function validateBackup(data: unknown): ValidationResult {
   }
 
   const stores = obj.stores as Record<string, unknown>;
-  const storeNames = [
-    'tasks', 'habits', 'goals', 'calendarBlocks', 'activityLogs',
-    'dailyPlans', 'suggestions', 'dailyReviews', 'weeklyReviews', 'settings', 'reminders',
-  ];
+  const schemaVersion = obj.schemaVersion as number;
 
-  for (const name of storeNames) {
-    if (stores[name] !== undefined && !Array.isArray(stores[name])) {
+  for (const name of STORE_NAMES) {
+    const value = stores[name];
+    if (value === undefined) {
+      if (name === 'reminders' && schemaVersion < 2) continue;
+      return { valid: false, reason: `Backup is missing the ${name} store.` };
+    }
+    if (!Array.isArray(value)) {
       return { valid: false, reason: 'Backup structure not recognized.' };
+    }
+
+    const ids = new Set<string>();
+    for (const item of value) {
+      if (!item || typeof item !== 'object' || typeof (item as { id?: unknown }).id !== 'string' || !(item as { id: string }).id.trim()) {
+        return { valid: false, reason: `Backup has invalid records in the ${name} store.` };
+      }
+      const id = (item as { id: string }).id;
+      if (ids.has(id)) {
+        return { valid: false, reason: `Backup has duplicate IDs in the ${name} store.` };
+      }
+      ids.add(id);
     }
   }
 
@@ -235,7 +254,7 @@ export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
   });
 
   await touchSettings({ lastImportAt: new Date().toISOString() });
-  localStorage.removeItem('nowwhat_manual_clear');
+  localStorage.setItem(MANUAL_CLEAR_KEY, '1');
 }
 
 // ── Clear ────────────────────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { db } from '../../data/db';
+import { isDailyReviewIncomplete } from '../../data/review';
 import type { DailyReview } from '../../types';
 import { getTodayStr, getYesterdayStr } from '../../utils/dateUtils';
 
@@ -24,8 +25,7 @@ export default function ReviewPrompt() {
     }
 
     // Yesterday incomplete (any time)
-    const yesterdayReview = await db.dailyReviews.where('date').equals(yesterdayStr).first() as DailyReview | undefined;
-    setShowYesterdayPrompt(!!yesterdayReview && yesterdayReview.status !== 'complete');
+    setShowYesterdayPrompt(await isDailyReviewIncomplete(yesterdayStr));
   }, []);
 
   useEffect(() => {

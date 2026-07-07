@@ -1,6 +1,6 @@
 import { db } from './db';
 import type { DailyReview, WeeklyReview, DailyPlan } from '../types';
-import { localDateStr, dayAfter, getTodayStr } from '../utils/dateUtils';
+import { isLocalDate, localDateFromTimestamp, localDateStr, dayAfter, getTodayStr } from '../utils/dateUtils';
 
 export function getYesterdayStr(): string {
   const d = new Date();
@@ -72,10 +72,35 @@ export function generateDailySummaryText(data: {
   return parts.length > 0 ? parts.join(' ') : 'No activity logged for this day.';
 }
 
+export async function hasReviewableActivity(date: string): Promise<boolean> {
+  const [logs, plan] = await Promise.all([
+    db.activityLogs.filter(l => isLocalDate(l.createdAt, date)).toArray(),
+    db.dailyPlans.where('date').equals(date).first(),
+  ]);
+
+  if (logs.length > 0) return true;
+  if (!plan) return false;
+
+  return Boolean(
+    plan.primaryFocus ||
+    (plan.plannedTaskIds?.length ?? 0) > 0 ||
+    (plan.plannedHabitIds?.length ?? 0) > 0 ||
+    (plan.calendarBlockIds?.length ?? 0) > 0 ||
+    (plan.carryOverTaskIds?.length ?? 0) > 0 ||
+    Object.values(plan.lifestyleMinimums || {}).some(value => (value ?? 0) > 0)
+  );
+}
+
+export async function isDailyReviewIncomplete(date: string): Promise<boolean> {
+  const review = await db.dailyReviews.where('date').equals(date).first() as DailyReview | undefined;
+  if (review) return review.status !== 'complete';
+  return hasReviewableActivity(date);
+}
+
 export async function generateDailyReviewData(date: string): Promise<
   Omit<DailyReview, 'id' | 'createdAt' | 'updatedAt' | 'reflectionNote' | 'status' | 'sleepHours' | 'reflection'>
 > {
-  const logs = await db.activityLogs.filter(l => l.createdAt.startsWith(date)).toArray();
+  const logs = await db.activityLogs.filter(l => isLocalDate(l.createdAt, date)).toArray();
 
   const completedTaskLogs = logs.filter(l => l.type === 'task_completed');
   const completedTaskIds = [...new Set(
@@ -277,7 +302,7 @@ export async function generateWeeklySummary(weekStart: string): Promise<WeeklyRe
 
   const allLogs = await db.activityLogs.toArray();
   const weekLogs = allLogs.filter(l => {
-    const d = l.createdAt.split('T')[0];
+    const d = localDateFromTimestamp(l.createdAt);
     return d >= weekStart && d <= weekEnd;
   });
 

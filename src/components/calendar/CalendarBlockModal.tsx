@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../data/db';
 import type { CalendarBlock } from '../../types';
+import { getTodayStr, localDateFromTimestamp } from '../../utils/dateUtils';
 
 interface Props {
   block?: CalendarBlock;
@@ -15,10 +16,10 @@ const inputStyle: React.CSSProperties = {
 };
 
 export default function CalendarBlockModal({ block, onClose }: Props) {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getTodayStr();
 
   const [title, setTitle] = useState(block?.title || '');
-  const [date, setDate] = useState(block?.startAt?.split('T')[0] || todayStr);
+  const [date, setDate] = useState(block?.startAt ? localDateFromTimestamp(block.startAt) : todayStr);
   const [startTime, setStartTime] = useState(
     block?.startAt?.includes('T') ? block.startAt.split('T')[1].slice(0, 5) : ''
   );
@@ -92,7 +93,7 @@ export default function CalendarBlockModal({ block, onClose }: Props) {
   const handleConvertToTask = async () => {
     if (!block) return;
     const taskId = crypto.randomUUID();
-    const blockDate = block.startAt.split('T')[0];
+    const blockDate = localDateFromTimestamp(block.startAt);
     const now2 = new Date().toISOString();
     await db.tasks.add({
       id: taskId,

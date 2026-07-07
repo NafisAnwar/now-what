@@ -4,7 +4,7 @@ import { db } from '../../data/db';
 import type { CalendarBlock } from '../../types';
 import CalendarBlockRow from './CalendarBlockRow';
 import CalendarBlockModal from './CalendarBlockModal';
-import { getTodayStr, localDateStr } from '../../utils/dateUtils';
+import { getTodayStr, isLocalDate, localDateFromTimestamp, localDateStr } from '../../utils/dateUtils';
 
 function parseIcsVevents(text: string): Array<{ uid?: string; title: string; startAt: string; endAt: string; location?: string }> {
   const events: Array<{ uid?: string; title: string; startAt: string; endAt: string; location?: string }> = [];
@@ -69,9 +69,12 @@ export default function CalendarPage() {
   const nowMs = Date.now();
   const in14Days = localDateStr(new Date(nowMs + 14 * 24 * 60 * 60 * 1000));
 
-  const todayBlocks = allBlocks.filter(b => b.startAt.startsWith(todayStr));
-  const upcomingBlocks = allBlocks.filter(b => b.startAt.split('T')[0] > todayStr && b.startAt.split('T')[0] <= in14Days);
-  const pastBlocks = allBlocks.filter(b => b.startAt.split('T')[0] < todayStr);
+  const todayBlocks = allBlocks.filter(b => isLocalDate(b.startAt, todayStr));
+  const upcomingBlocks = allBlocks.filter(b => {
+    const blockDate = localDateFromTimestamp(b.startAt);
+    return blockDate > todayStr && blockDate <= in14Days;
+  });
+  const pastBlocks = allBlocks.filter(b => localDateFromTimestamp(b.startAt) < todayStr);
 
   // Use Date.getTime() for numeric comparison — avoids timezone issues with ISO string comparison
   const isActive = (block: CalendarBlock) =>

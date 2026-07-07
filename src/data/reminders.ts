@@ -1,4 +1,5 @@
 import { db } from './db';
+import { hasReviewableActivity, isDailyReviewIncomplete } from './review';
 import type { Reminder, Settings, DailyReview } from '../types';
 import { getTodayStr, localDateStr } from '../utils/dateUtils';
 
@@ -301,9 +302,7 @@ export async function generateSystemRemindersForToday(): Promise<void> {
     if (settings.reviewReminderEnabled && !inQuiet && hour >= 20) {
       const todayReview = await db.dailyReviews.where('date').equals(todayStr).first() as DailyReview | undefined;
       if (todayReview?.status !== 'complete') {
-        const todayLogs = await db.activityLogs.filter(l => localDateStr(new Date(l.createdAt)) === todayStr).toArray();
-        const todayPlan = await db.dailyPlans.where('date').equals(todayStr).first();
-        const hasActivity = todayLogs.length > 0 || (todayPlan?.plannedTaskIds?.length ?? 0) > 0;
+        const hasActivity = await hasReviewableActivity(todayStr);
         if (hasActivity) {
           await ensureReminder(todayStr, 'daily_review', undefined, () => ({
             type: 'daily_review',
@@ -325,8 +324,8 @@ export async function generateSystemRemindersForToday(): Promise<void> {
       const yesterday = new Date(now);
       yesterday.setDate(yesterday.getDate() - 1);
       const yesterdayStr = localDateStr(yesterday);
-      const yrReview = await db.dailyReviews.where('date').equals(yesterdayStr).first() as DailyReview | undefined;
-      if (yrReview && yrReview.status !== 'complete') {
+      const previousReviewIncomplete = await isDailyReviewIncomplete(yesterdayStr);
+      if (previousReviewIncomplete) {
         await ensureReminder(todayStr, 'previous_review', undefined, () => ({
           type: 'previous_review',
           title: 'Previous review incomplete.',

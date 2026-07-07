@@ -1,5 +1,6 @@
 import React from 'react';
 import type { Goal, Task, Habit } from '../../types';
+import { isLocalDate } from '../../utils/dateUtils';
 
 interface Props {
   goal: Goal;
@@ -16,7 +17,7 @@ export default function GoalRow({ goal, allTasks, habits, todayStr, onEdit }: Pr
 
   const linkedTasks = allTasks.filter(t => (goal.linkedTaskIds || []).includes(t.id));
   const completedLinkedTasksToday = linkedTasks.filter(
-    t => t.status === 'complete' && t.completedAt?.startsWith(todayStr)
+    t => t.status === 'complete' && !!t.completedAt && isLocalDate(t.completedAt, todayStr)
   ).length;
 
   const linkedHabits = habits.filter(h => (goal.linkedHabitIds || []).includes(h.id));

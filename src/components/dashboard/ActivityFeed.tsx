@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
-import { getTodayStr } from '../../utils/dateUtils';
+import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
 
 export default function ActivityFeed() {
   const todayStr = getTodayStr();
@@ -9,7 +9,7 @@ export default function ActivityFeed() {
   // toArray() + JS sort gives correct descending order; Dexie's .reverse().sortBy()
   // always returns ascending regardless of .reverse() direction.
   const logs = useLiveQuery(async () => {
-    const all = await db.activityLogs.filter(log => log.createdAt.startsWith(todayStr)).toArray();
+    const all = await db.activityLogs.filter(log => isLocalDate(log.createdAt, todayStr)).toArray();
     return all.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   });
 

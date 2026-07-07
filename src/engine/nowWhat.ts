@@ -1,6 +1,7 @@
 import { db } from '../data/db';
+import { isDailyReviewIncomplete } from '../data/review';
 import type { Task, Suggestion, SuggestionActionType, Habit, Goal, DailyPlan, CalendarBlock, DailyReview } from '../types';
-import { localDateStr } from '../utils/dateUtils';
+import { isLocalDate, localDateStr } from '../utils/dateUtils';
 
 export interface Context {
   now: Date;
@@ -69,7 +70,7 @@ export async function getCurrentContext(): Promise<Context> {
     (t) => (t.priority === 'high' || t.priority === 'critical')
   );
 
-  const todaysLogs = await db.activityLogs.filter(log => log.createdAt.startsWith(todayStr)).toArray();
+  const todaysLogs = await db.activityLogs.filter(log => isLocalDate(log.createdAt, todayStr)).toArray();
   const completedTasksToday = todaysLogs.filter(log => log.type === 'task_completed').length;
 
   const waterMlToday = todaysLogs.filter(log => log.type === 'water').reduce((acc, log) => acc + (log.quantity || 0), 0);
@@ -118,7 +119,7 @@ export async function getCurrentContext(): Promise<Context> {
   const primaryFocus = todayDailyPlan?.primaryFocus ?? null;
 
   const todaysCalendarBlocks = await db.calendarBlocks
-    .filter(b => b.startAt.startsWith(todayStr))
+    .filter(b => isLocalDate(b.startAt, todayStr))
     .toArray();
   todaysCalendarBlocks.sort((a, b) => a.startAt.localeCompare(b.startAt));
 
@@ -140,8 +141,7 @@ export async function getCurrentContext(): Promise<Context> {
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = localDateStr(yesterday);
-  const yesterdayReview = await db.dailyReviews.where('date').equals(yesterdayStr).first() as DailyReview | undefined;
-  const yesterdayReviewIncomplete = !!yesterdayReview && yesterdayReview.status !== 'complete';
+  const yesterdayReviewIncomplete = await isDailyReviewIncomplete(yesterdayStr);
 
   return {
     now,
