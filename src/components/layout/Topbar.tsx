@@ -59,7 +59,8 @@ export default function Topbar({ onMenuToggle, isOnline }: Props) {
         </button>
         <Link
           href="/"
-          className="mono"
+          className="mono topbar-logo"
+          aria-label="Go to dashboard"
           style={{
             color: 'var(--white)',
             textTransform: 'uppercase',

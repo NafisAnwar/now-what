@@ -197,19 +197,15 @@ export default function DailyPlanPanel() {
                 No unplanned tasks remaining.
               </div>
             ) : unplannedTasks.map(task => (
-              <div
+              <button
+                type="button"
                 key={task.id}
                 onClick={async () => {
                   if (!plan) return;
                   await addTaskToPlan(plan.id, task.id, plan.plannedTaskIds);
                   setShowTaskPicker(false);
                 }}
-                style={{
-                  padding: '8px 12px', cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', gap: '8px',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                className="daily-plan-picker-option"
               >
                 <span className="mono" style={{ fontSize: '13px', color: 'var(--body)', flex: 1 }}>
                   {task.title}
@@ -220,7 +216,7 @@ export default function DailyPlanPanel() {
                 }}>
                   {task.priority === 'critical' ? 'CRIT' : task.priority.toUpperCase()}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -277,19 +273,15 @@ export default function DailyPlanPanel() {
                 No unplanned habits remaining.
               </div>
             ) : unplannedHabits.map(habit => (
-              <div
+              <button
+                type="button"
                 key={habit.id}
                 onClick={async () => {
                   if (!plan) return;
                   await addHabitToPlan(plan.id, habit.id, plan.plannedHabitIds);
                   setShowHabitPicker(false);
                 }}
-                style={{
-                  padding: '8px 12px', cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', gap: '8px',
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--surface)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                className="daily-plan-picker-option"
               >
                 <span className="mono" style={{ fontSize: '13px', color: 'var(--body)', flex: 1 }}>
                   {habit.name}
@@ -300,7 +292,7 @@ export default function DailyPlanPanel() {
                 }}>
                   {habit.frequency}
                 </span>
-              </div>
+              </button>
             ))}
           </div>
         )}
@@ -331,14 +323,15 @@ export default function DailyPlanPanel() {
             ) : unplannedTodayBlocks.map(block => {
               const fmt = (iso: string) => iso.includes('T') ? iso.split('T')[1].slice(0, 5) : iso;
               return (
-                <div key={block.id}
+                <button
+                  type="button"
+                  key={block.id}
                   onClick={async () => { if (!plan) return; await addCalendarBlockToPlan(plan.id, block.id, plan.calendarBlockIds ?? []); setShowBlockPicker(false); }}
-                  style={{ padding: '8px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
-                  onMouseEnter={e => e.currentTarget.style.background = 'var(--surface)'}
-                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                  className="daily-plan-picker-option"
+                >
                   <span className="mono" style={{ fontSize: '11px', color: 'var(--dim)' }}>{fmt(block.startAt)}–{fmt(block.endAt)}</span>
                   <span className="mono" style={{ fontSize: '13px', color: 'var(--body)', flex: 1 }}>{block.title}</span>
-                </div>
+                </button>
               );
             })}
           </div>

@@ -27,6 +27,15 @@ export default function Sidebar({ isOpen, onClose }: Props) {
       {isOpen && (
         <div
           onClick={onClose}
+          onKeyDown={e => {
+            if (e.key === 'Enter' || e.key === ' ' || e.key === 'Escape') {
+              e.preventDefault();
+              onClose();
+            }
+          }}
+          role="button"
+          tabIndex={0}
+          aria-label="Close navigation"
           style={{
             position: 'fixed',
             inset: 0,
@@ -54,28 +63,19 @@ export default function Sidebar({ isOpen, onClose }: Props) {
           {navItems.map(item => {
             const isActive = location === item.path;
             return (
-              <Link key={item.path} href={item.path} style={{ textDecoration: 'none', display: 'block' }}>
-                <div
-                  style={{
-                    height: '44px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '0 16px',
-                    borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
-                    color: isActive ? 'var(--primary)' : 'var(--dim)',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={e => {
-                    if (!isActive) e.currentTarget.style.backgroundColor = 'var(--surface2)';
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <span className="mono" style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    {item.label}
-                  </span>
-                </div>
+              <Link
+                key={item.path}
+                href={item.path}
+                className="mono sidebar-link"
+                aria-current={isActive ? 'page' : undefined}
+                style={{
+                  borderLeft: isActive ? '2px solid var(--primary)' : '2px solid transparent',
+                  color: isActive ? 'var(--primary)' : 'var(--dim)',
+                }}
+              >
+                <span style={{ fontSize: '12px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  {item.label}
+                </span>
               </Link>
             );
           })}

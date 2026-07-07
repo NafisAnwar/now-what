@@ -165,11 +165,15 @@ export default function CalendarPage() {
       <div style={{ marginTop: '32px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
         <div className="label" style={{ marginBottom: '8px' }}>IMPORT .ICS FILE</div>
         <input
+          id="calendar-ics-import"
           type="file"
           accept=".ics"
           onChange={handleIcsImport}
-          style={{ color: 'var(--dim)', fontFamily: 'var(--mono)', fontSize: '12px' }}
+          className="visually-hidden-file"
         />
+        <label htmlFor="calendar-ics-import" className="mono file-trigger">
+          [SELECT .ICS FILE]
+        </label>
         {icsError && (
           <div className="mono" style={{ color: 'var(--error)', fontSize: '11px', marginTop: '8px' }}>
             {icsError}

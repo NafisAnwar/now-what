@@ -100,23 +100,19 @@ export default function ImportPanel() {
 
       {(stage === 'idle' || stage === 'error') && (
         <div>
+          <input
+            id="backup-import-file"
+            ref={fileRef}
+            type="file"
+            accept=".json"
+            onChange={handleFile}
+            className="visually-hidden-file"
+          />
           <label
-            className="mono"
-            style={{
-              display: 'inline-block', cursor: 'pointer',
-              background: 'transparent', border: '1px solid var(--border)',
-              color: 'var(--dim)', fontSize: '12px', padding: '6px 14px',
-              textTransform: 'uppercase', letterSpacing: '0.04em',
-            }}
+            htmlFor="backup-import-file"
+            className="mono file-trigger"
           >
             [SELECT BACKUP FILE]
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".json"
-              onChange={handleFile}
-              style={{ display: 'none' }}
-            />
           </label>
 
           {stage === 'error' && (
