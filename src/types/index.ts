@@ -1,0 +1,260 @@
+export type Priority = 'low' | 'medium' | 'high' | 'critical';
+export type TaskStatus = 'pending' | 'complete' | 'skipped' | 'missed';
+export type EnergyLevel = 'low' | 'medium' | 'high';
+export type TaskCategory = 'School' | 'Work' | 'Health' | 'Admin' | 'Personal' | 'Creative' | 'Social' | 'Maintenance' | string;
+
+export interface RepeatRule {
+  type: 'none' | 'daily' | 'weekly' | 'custom';
+  daysOfWeek?: number[];
+  interval?: number;
+}
+
+export interface Task {
+  id: string;
+  title: string;
+  category: TaskCategory;
+  priority: Priority;
+  status: TaskStatus;
+  estimatedMinutes?: number;
+  dueDate?: string;
+  dueTime?: string;
+  repeatRule: RepeatRule;
+  energyRequired: EnergyLevel;
+  goalId?: string;
+  notes?: string;
+  carryOverHistory: string[];
+  missedCount: number;
+  createdAt: string;
+  updatedAt: string;
+  completedAt?: string;
+}
+
+export interface HabitCompletion {
+  date: string;
+  value?: number;
+  completedAt: string;
+}
+
+export interface Habit {
+  id: string;
+  name: string;
+  category: string;
+  frequency: 'daily' | 'weekly' | 'custom';
+  completionType: 'boolean' | 'quantity' | 'time' | 'count';
+  targetValue?: number;
+  targetUnit?: string;
+  timeWindowStart?: string;
+  timeWindowEnd?: string;
+  minimumVersion?: string;
+  goalId?: string;
+  notes?: string;
+  completionHistory: HabitCompletion[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Goal {
+  id: string;
+  title: string;
+  category: string;
+  horizon: 'week' | 'month' | 'semester' | 'year' | 'ongoing';
+  linkedTaskIds: string[];
+  linkedHabitIds: string[];
+  status: 'active' | 'paused' | 'complete';
+  reviewNotes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CalendarBlock {
+  id: string;
+  source: 'manual' | 'ics' | 'google_stub' | 'apple_stub';
+  externalId?: string;
+  title: string;
+  startAt: string;
+  endAt: string;
+  location?: string;
+  calendarName?: string;
+  convertedTaskIds: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LogType =
+  | 'task_completed'
+  | 'habit_completed'
+  | 'water'
+  | 'meal'
+  | 'exercise'
+  | 'focus'
+  | 'mood'
+  | 'energy'
+  | 'rest'
+  | 'distraction'
+  | 'calendar'
+  | 'note';
+
+export interface ActivityLog {
+  id: string;
+  type: LogType;
+  label: string;
+  startAt?: string;
+  endAt?: string;
+  durationMinutes?: number;
+  quantity?: number;
+  unit?: string;
+  relatedTaskId?: string;
+  relatedHabitId?: string;
+  relatedGoalId?: string;
+  notes?: string;
+  createdAt: string;
+}
+
+export interface DailyPlan {
+  id: string;
+  date: string;
+  primaryFocus?: string;
+  plannedTaskIds: string[];
+  plannedHabitIds: string[];
+  calendarBlockIds: string[];
+  lifestyleMinimums: {
+    waterMl?: number;
+    meals?: number;
+    movementMinutes?: number;
+    focusMinutes?: number;
+    restMinutes?: number;
+  };
+  carryOverTaskIds: string[];
+  reviewStatus: 'not_started' | 'in_progress' | 'complete';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SuggestionActionType =
+  | 'start_task'
+  | 'complete_habit'
+  | 'begin_focus'
+  | 'log_water'
+  | 'log_meal'
+  | 'move'
+  | 'rest'
+  | 'review_day'
+  | 'plan_tomorrow'
+  | 'clear_state'
+  | 'acknowledge_block';
+
+export interface Suggestion {
+  id: string;
+  createdAt: string;
+  actionType: SuggestionActionType;
+  targetId?: string;
+  command: string;
+  targetLabel: string;
+  reason: string;
+  status: 'shown' | 'accepted' | 'dismissed' | 'completed' | 'ignored';
+  contextSnapshot: Record<string, unknown>;
+}
+
+/**
+ * DailyReview — all new fields (added in Step 7) are optional for backward
+ * compatibility with pre-Step-7 records that only had id/date/reflection/createdAt/updatedAt.
+ */
+export interface DailyReview {
+  id: string;
+  date: string;
+  reflection?: string;           // legacy field name from pre-Step-7
+  completedTaskIds?: string[];
+  missedTaskIds?: string[];
+  completedHabitIds?: string[];
+  focusMinutes?: number;
+  distractionMinutes?: number;
+  restMinutes?: number;
+  waterMl?: number;
+  mealsLogged?: number;
+  movementMinutes?: number;
+  sleepHours?: number;
+  calendarBlockIds?: string[];
+  carryOverTaskIds?: string[];
+  generatedSummary?: string;
+  reflectionNote?: string;
+  status?: 'draft' | 'complete';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface WeeklyReview {
+  id: string;
+  weekStart: string;
+  weekEnd: string;
+  completedTaskCount: number;
+  missedTaskCount: number;
+  completedHabitCount: number;
+  focusMinutes: number;
+  distractionMinutes: number;
+  restMinutes: number;
+  movementMinutes: number;
+  waterMl: number;
+  mealsLogged: number;
+  mostConsistentHabits: string[];
+  mostMissedHabits: string[];
+  repeatedMissedTaskTitles: string[];
+  bestFocusWindow?: string;
+  struggleWindow?: string;
+  goalProgressNotes: string[];
+  generatedSummary: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Settings — existing fields kept; new fields are optional for back-compat.
+ */
+export interface Settings {
+  id: string;
+  theme: 'dark';
+  // Data controls metadata
+  appVersion?: string;
+  schemaVersion?: number;
+  lastExportAt?: string;
+  lastImportAt?: string;
+  seedEnabled?: boolean;
+  // Reminder settings
+  remindersEnabled?: boolean;
+  browserNotificationsEnabled?: boolean;
+  quietHoursStart?: string;
+  quietHoursEnd?: string;
+  hydrationRemindersEnabled?: boolean;
+  movementRemindersEnabled?: boolean;
+  reviewReminderEnabled?: boolean;
+  calendarRemindersEnabled?: boolean;
+  taskDueRemindersEnabled?: boolean;
+  habitWindowRemindersEnabled?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Reminder {
+  id: string;
+  type:
+    | 'task_due'
+    | 'habit_window'
+    | 'calendar_block'
+    | 'planned_focus'
+    | 'daily_review'
+    | 'previous_review'
+    | 'hydration'
+    | 'movement'
+    | 'custom';
+  title: string;
+  message: string;
+  targetType?: 'task' | 'habit' | 'calendarBlock' | 'dailyPlan' | 'review' | 'quickLog';
+  targetId?: string;
+  scheduledAt: string;
+  status: 'scheduled' | 'sent' | 'dismissed' | 'completed' | 'cancelled';
+  source: 'system' | 'user';
+  repeat?: 'none' | 'daily' | 'weekly';
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string;
+  sentAt?: string;
+}

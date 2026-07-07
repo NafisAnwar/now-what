@@ -1,0 +1,6 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" fill="#080808"/>
+  <rect x="0.5" y="0.5" width="179" height="179" stroke="#282828" stroke-width="1"/>
+  <text x="90" y="70" font-family="monospace" font-size="34" font-weight="700" text-anchor="middle" fill="#f0f0f0" letter-spacing="1">NW</text>
+  <text x="90" y="118" font-family="monospace" font-size="34" font-weight="700" text-anchor="middle" fill="#f0f0f0" letter-spacing="1">?</text>
+</svg>

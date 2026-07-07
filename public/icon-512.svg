@@ -1,0 +1,7 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" fill="#080808"/>
+  <rect x="1" y="1" width="510" height="510" stroke="#1c1c1c" stroke-width="2"/>
+  <text x="256" y="196" font-family="monospace" font-size="96" font-weight="700" text-anchor="middle" fill="#f0f0f0" letter-spacing="4">NOW</text>
+  <text x="256" y="308" font-family="monospace" font-size="96" font-weight="700" text-anchor="middle" fill="#f0f0f0" letter-spacing="4">WHAT</text>
+  <text x="256" y="400" font-family="monospace" font-size="72" font-weight="400" text-anchor="middle" fill="#666666" letter-spacing="2">?</text>
+</svg>

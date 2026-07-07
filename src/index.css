@@ -1,0 +1,165 @@
+@import 'tailwindcss';
+
+:root {
+  --bg: #080808;
+  --surface: #0f0f0f;
+  --surface2: #161616;
+  --border: #1c1c1c;
+  --border-mid: #282828;
+  --border-hi: #383838;
+  --muted: #3a3a3a;
+  --dim: #666666;
+  --secondary: #999999;
+  --body: #c0c0c0;
+  --primary: #f0f0f0;
+  --white: #ffffff;
+  --error: #b22222;
+  --mono: "Space Mono", monospace;
+  --sans: "Inter", sans-serif;
+  --radius: 1px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body, #root { height: 100%; }
+body {
+  background: var(--bg);
+  color: var(--body);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Dot-matrix background texture */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+}
+
+#root { position: relative; z-index: 1; }
+
+/* Typography rules */
+.mono { font-family: var(--mono); }
+.label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+.label-hi {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--secondary);
+}
+
+/* Hairline borders */
+.border-line { border: 1px solid var(--border); }
+.border-mid { border: 1px solid var(--border-mid); }
+.border-hi { border: 1px solid var(--border-hi); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--muted); border-radius: 0; }
+
+/* Focus */
+*:focus-visible { outline: 1px solid var(--border-hi); outline-offset: 2px; }
+
+/* Transitions */
+* { transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1); }
+
+/* ── Reduced motion ──────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── Mobile sidebar ──────────────────────────────────────────────────────── */
+.sidebar {
+  transition: transform 0.22s ease;
+}
+
+@media (max-width: 767px) {
+  /* Hamburger visible, shortcuts hidden */
+  .hamburger-btn { display: block !important; }
+  .shortcuts-hint { display: none !important; }
+
+  /* Sidebar: hidden off-screen, slides in when open */
+  .sidebar {
+    position: fixed !important;
+    top: 44px;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    box-shadow: 4px 0 24px rgba(0,0,0,0.5);
+  }
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* Main content: full width, smaller padding */
+  .app-main {
+    padding: 16px 14px !important;
+    width: 100%;
+  }
+
+  /* Topbar: install button text shortened */
+  .topbar-install { font-size: 9px !important; }
+}
+
+/* ── Touch targets ───────────────────────────────────────────────────────── */
+@media (max-width: 767px) {
+  button {
+    min-height: 36px;
+    min-width: 36px;
+  }
+  /* Nav items already 44px height */
+}
+
+/* ── Dashboard responsive ────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  /* DailyPlanPanel, NowWhatCard, ReminderTray: allow full width */
+  div[style*="maxWidth: '640px'"],
+  div[style*='maxWidth: "640px"'],
+  div[style*="max-width: 640px"] {
+    max-width: 100% !important;
+  }
+}
+
+/* ── Modal responsive ────────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  /* Fixed modal containers */
+  div[style*="position: 'fixed'"][style*="inset"],
+  .modal-overlay {
+    padding: 0 !important;
+    align-items: flex-end !important;
+  }
+}
+
+/* ── Data page tabs ──────────────────────────────────────────────────────── */
+@media (max-width: 500px) {
+  /* Allow tab buttons to shrink */
+  button[style*="padding: '8px 14px'"] {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* ── Focus outlines — HUD style ──────────────────────────────────────────── */
+*:focus-visible {
+  outline: 1px solid var(--border-hi);
+  outline-offset: 2px;
+}
