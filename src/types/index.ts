@@ -220,6 +220,10 @@ export interface Settings {
   lastExportAt?: string;
   lastImportAt?: string;
   seedEnabled?: boolean;
+  // Tutorial/onboarding status
+  tutorialPromptSeenAt?: string;
+  tutorialCompletedAt?: string;
+  tutorialDismissedAt?: string;
   // Reminder settings
   remindersEnabled?: boolean;
   browserNotificationsEnabled?: boolean;

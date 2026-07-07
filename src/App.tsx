@@ -10,6 +10,8 @@ import CalendarPage from './components/calendar/CalendarPage';
 import DailyReviewPage from './components/review/DailyReviewPage';
 import DataPage from './components/data/DataPage';
 import RemindersPage from './components/reminders/RemindersPage';
+import TutorialPage from './components/tutorial/TutorialPage';
+import TutorialPrompt from './components/tutorial/TutorialPrompt';
 import { generateSystemRemindersForToday } from './data/reminders';
 import { initializeProfileSession } from './data/profile';
 import TaskModal from './components/tasks/TaskModal';
@@ -58,6 +60,7 @@ function Router() {
     <div key={location} className="route-transition">
       <Switch>
         <Route path="/" component={Dashboard} />
+        <Route path="/guide" component={TutorialPage} />
         <Route path="/tasks" component={TasksPage} />
         <Route path="/habits" component={HabitsPage} />
         <Route path="/goals" component={GoalsPage} />
@@ -198,6 +201,7 @@ export default function App() {
         <AppShell>
           <Router />
         </AppShell>
+        <TutorialPrompt />
       </WouterRouter>
       {isTaskModalOpen && <TaskModal onClose={() => setIsTaskModalOpen(false)} />}
       {isHabitModalOpen && <HabitModal onClose={() => setIsHabitModalOpen(false)} />}

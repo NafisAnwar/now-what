@@ -11,6 +11,7 @@ export default function Sidebar({ isOpen, onClose }: Props) {
 
   const navItems = [
     { label: 'DASHBOARD', path: '/' },
+    { label: 'GUIDE', path: '/guide' },
     { label: 'TASKS', path: '/tasks' },
     { label: 'HABITS', path: '/habits' },
     { label: 'GOALS', path: '/goals' },
