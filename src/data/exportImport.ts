@@ -1,8 +1,10 @@
 import { db } from './db';
+import { PROFILE_SCHEMA_VERSION } from './db';
+import { getActiveProfileRecord } from './profile';
 import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggestion, DailyReview, WeeklyReview, Settings, Reminder } from '../types';
 
-export const EXPORT_VERSION = 1;
-export const SCHEMA_VERSION = 2;
+export const EXPORT_VERSION = 2;
+export const SCHEMA_VERSION = PROFILE_SCHEMA_VERSION;
 export const APP_NAME = 'NOW_WHAT?';
 const MANUAL_CLEAR_KEY = 'nowwhat_manual_clear';
 const STORE_NAMES = [
@@ -10,11 +12,19 @@ const STORE_NAMES = [
   'dailyPlans', 'suggestions', 'dailyReviews', 'weeklyReviews', 'settings', 'reminders',
 ] as const;
 
+export interface BackupProfile {
+  id: string;
+  displayName: string;
+  createdAt: string;
+  deviceLabel?: string;
+}
+
 export interface NowWhatBackup {
   app: string;
   exportVersion: number;
   schemaVersion: number;
   exportedAt: string;
+  profile: BackupProfile;
   stores: {
     tasks: Task[];
     habits: Habit[];
@@ -51,17 +61,48 @@ export interface ImportSummary {
   reminders: number;
 }
 
+function normalizeBackupProfile(value: unknown, exportedAt: string): BackupProfile {
+  if (!value || typeof value !== 'object') {
+    return {
+      id: 'legacy',
+      displayName: 'Legacy Backup',
+      createdAt: exportedAt,
+    };
+  }
+
+  const raw = value as Record<string, unknown>;
+  const id = typeof raw.id === 'string' && raw.id.trim() ? raw.id : 'legacy';
+  const displayName = typeof raw.displayName === 'string' && raw.displayName.trim()
+    ? raw.displayName
+    : 'Local Profile';
+  const createdAt = typeof raw.createdAt === 'string' && raw.createdAt.trim()
+    ? raw.createdAt
+    : exportedAt;
+  const deviceLabel = typeof raw.deviceLabel === 'string' && raw.deviceLabel.trim()
+    ? raw.deviceLabel
+    : undefined;
+
+  return {
+    id,
+    displayName,
+    createdAt,
+    deviceLabel,
+  };
+}
+
 // ── Settings helpers ────────────────────────────────────────────────────────
 
 async function getOrCreateSettings(): Promise<Settings> {
   const all = await db.settings.toArray() as Settings[];
   if (all.length > 0) return all[0];
+  const profile = await getActiveProfileRecord();
   const now = new Date().toISOString();
   const s: Settings = {
     id: crypto.randomUUID(),
     theme: 'dark',
     appVersion: '0.9.0',
     schemaVersion: SCHEMA_VERSION,
+    localProfileId: profile?.id,
     createdAt: now,
     updatedAt: now,
   };
@@ -81,6 +122,7 @@ export async function getSettingsInfo(): Promise<Settings> {
 // ── Export ──────────────────────────────────────────────────────────────────
 
 export async function exportDatabase(): Promise<void> {
+  const profile = await getActiveProfileRecord();
   const [
     tasks, habits, goals, calendarBlocks, activityLogs,
     dailyPlans, suggestions, dailyReviews, weeklyReviews, settings, reminders,
@@ -99,11 +141,25 @@ export async function exportDatabase(): Promise<void> {
   ]);
 
   const exportedAt = new Date().toISOString();
+  const backupProfile: BackupProfile = profile
+    ? {
+        id: profile.id,
+        displayName: profile.displayName,
+        createdAt: profile.createdAt,
+        deviceLabel: profile.deviceLabel,
+      }
+    : {
+        id: 'unknown',
+        displayName: 'Local Profile',
+        createdAt: exportedAt,
+      };
+
   const backup: NowWhatBackup = {
     app: APP_NAME,
     exportVersion: EXPORT_VERSION,
     schemaVersion: SCHEMA_VERSION,
     exportedAt,
+    profile: backupProfile,
     stores: {
       tasks: tasks as Task[],
       habits: habits as Habit[],
@@ -189,6 +245,7 @@ export function validateBackup(data: unknown): ValidationResult {
     exportVersion: typeof obj.exportVersion === 'number' ? obj.exportVersion : 1,
     schemaVersion: obj.schemaVersion as number,
     exportedAt: typeof obj.exportedAt === 'string' ? obj.exportedAt : '',
+    profile: normalizeBackupProfile(obj.profile, typeof obj.exportedAt === 'string' ? obj.exportedAt : ''),
     stores: {
       tasks: safeArr('tasks') as Task[],
       habits: safeArr('habits') as Habit[],
@@ -225,6 +282,13 @@ export function validateBackup(data: unknown): ValidationResult {
 
 export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
   const { stores } = backup;
+  const activeProfile = await getActiveProfileRecord();
+  const importedAt = new Date().toISOString();
+  const settingsForActiveProfile = stores.settings.map(setting => ({
+    ...setting,
+    localProfileId: activeProfile?.id,
+    updatedAt: importedAt,
+  }));
 
   await db.transaction('rw', [
     db.tasks, db.habits, db.goals, db.calendarBlocks, db.activityLogs,
@@ -248,12 +312,12 @@ export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
       stores.suggestions.length > 0 ? db.suggestions.bulkAdd(stores.suggestions as never) : Promise.resolve(),
       stores.dailyReviews.length > 0 ? db.dailyReviews.bulkAdd(stores.dailyReviews as never) : Promise.resolve(),
       stores.weeklyReviews.length > 0 ? db.weeklyReviews.bulkAdd(stores.weeklyReviews as never) : Promise.resolve(),
-      stores.settings.length > 0 ? db.settings.bulkAdd(stores.settings as never) : Promise.resolve(),
+      settingsForActiveProfile.length > 0 ? db.settings.bulkAdd(settingsForActiveProfile as never) : Promise.resolve(),
       stores.reminders.length > 0 ? db.reminders.bulkAdd(stores.reminders as never) : Promise.resolve(),
     ]);
   });
 
-  await touchSettings({ lastImportAt: new Date().toISOString() });
+  await touchSettings({ lastImportAt: importedAt, localProfileId: activeProfile?.id });
   localStorage.setItem(MANUAL_CLEAR_KEY, '1');
 }
 

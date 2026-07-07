@@ -20,8 +20,9 @@ export default function ExportPanel() {
   return (
     <div>
       <div className="mono" style={{ fontSize: '11px', color: 'var(--dim)', marginBottom: '16px', lineHeight: 1.6 }}>
-        Exports all local data as a JSON backup file. Includes tasks, habits, goals,
-        calendar blocks, activity logs, daily plans, suggestions, reviews, and settings.
+        Exports active local profile data as a JSON backup file. Includes profile metadata,
+        tasks, habits, goals, calendar blocks, activity logs, daily plans, suggestions,
+        reviews, settings, and reminders.
       </div>
 
       <div
@@ -38,7 +39,7 @@ export default function ExportPanel() {
         <div className="mono" style={{ fontSize: '11px', color: 'var(--body)', lineHeight: 1.6 }}>
           Format: JSON<br />
           Filename: <span style={{ color: 'var(--dim)' }}>now_what_backup_YYYY-MM-DD_HH-mm.json</span><br />
-          Includes: app name, export version, schema version, exportedAt timestamp
+          Includes: app name, export version, schema version, profile metadata, exportedAt timestamp
         </div>
       </div>
 

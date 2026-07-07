@@ -68,13 +68,14 @@ export interface Goal {
 
 export interface CalendarBlock {
   id: string;
-  source: 'manual' | 'ics' | 'google_stub' | 'apple_stub';
+  source: 'manual' | 'ics' | 'google_ics' | 'google_api' | 'apple_ics' | 'google_stub' | 'apple_stub';
   externalId?: string;
   title: string;
   startAt: string;
   endAt: string;
   location?: string;
   calendarName?: string;
+  importedAt?: string;
   convertedTaskIds: string[];
   createdAt: string;
   updatedAt: string;
@@ -215,6 +216,7 @@ export interface Settings {
   // Data controls metadata
   appVersion?: string;
   schemaVersion?: number;
+  localProfileId?: string;
   lastExportAt?: string;
   lastImportAt?: string;
   seedEnabled?: boolean;

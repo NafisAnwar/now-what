@@ -11,6 +11,7 @@ import DailyReviewPage from './components/review/DailyReviewPage';
 import DataPage from './components/data/DataPage';
 import RemindersPage from './components/reminders/RemindersPage';
 import { generateSystemRemindersForToday } from './data/reminders';
+import { initializeProfileSession } from './data/profile';
 import TaskModal from './components/tasks/TaskModal';
 import HabitModal from './components/habits/HabitModal';
 import GoalModal from './components/goals/GoalModal';
@@ -72,7 +73,8 @@ function Router() {
 }
 
 export default function App() {
-  const [isSeeded, setIsSeeded] = useState(false);
+  const [isProfileReady, setIsProfileReady] = useState(false);
+  const [bootError, setBootError] = useState<string | null>(null);
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
@@ -91,12 +93,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    setIsSeeded(true);
+    let cancelled = false;
+    initializeProfileSession()
+      .then(() => {
+        if (!cancelled) setIsProfileReady(true);
+      })
+      .catch(err => {
+        console.error('[profile] boot failed:', err);
+        if (!cancelled) setBootError('Profile boot failed.');
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Reminder scheduler: run on seed, every 5 min, and on engine regen events
+  // Reminder scheduler: run after profile boot, every 5 min, and on engine regen events
   useEffect(() => {
-    if (!isSeeded) return;
+    if (!isProfileReady) return;
     generateSystemRemindersForToday().catch(console.error);
     const interval = setInterval(() => {
       generateSystemRemindersForToday().catch(console.error);
@@ -107,7 +121,7 @@ export default function App() {
       clearInterval(interval);
       window.removeEventListener('regenerate_now_what', handleRegen);
     };
-  }, [isSeeded]);
+  }, [isProfileReady]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -160,7 +174,15 @@ export default function App() {
     };
   }, []);
 
-  if (!isSeeded) return null;
+  if (bootError) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+        <div className="mono" style={{ color: 'var(--dim)' }}>{bootError}</div>
+      </div>
+    );
+  }
+
+  if (!isProfileReady) return null;
 
   return (
     <ToastProvider>

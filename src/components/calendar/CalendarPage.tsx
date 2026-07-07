@@ -4,57 +4,8 @@ import { db } from '../../data/db';
 import type { CalendarBlock } from '../../types';
 import CalendarBlockRow from './CalendarBlockRow';
 import CalendarBlockModal from './CalendarBlockModal';
+import { CalendarImportError, importIcsFile } from '../../data/calendar';
 import { getTodayStr, isLocalDate, localDateFromTimestamp, localDateStr } from '../../utils/dateUtils';
-
-function parseIcsVevents(text: string): Array<{ uid?: string; title: string; startAt: string; endAt: string; location?: string }> {
-  const events: Array<{ uid?: string; title: string; startAt: string; endAt: string; location?: string }> = [];
-  // Unfold lines (RFC 5545: continuation lines start with space/tab)
-  const unfolded = text.replace(/\r\n[ \t]/g, '').replace(/\n[ \t]/g, '');
-  const lines = unfolded.split(/\r?\n/);
-  let inEvent = false;
-  let current: Record<string, string> = {};
-  for (const line of lines) {
-    if (line === 'BEGIN:VEVENT') { inEvent = true; current = {}; continue; }
-    if (line === 'END:VEVENT') {
-      inEvent = false;
-      const title = current['SUMMARY'] || 'Untitled';
-      const rawStart = current['DTSTART'] || current['DTSTART;VALUE=DATE'] || '';
-      const rawEnd = current['DTEND'] || current['DTEND;VALUE=DATE'] || rawStart;
-      if (!rawStart) continue;
-      const parseDate = (raw: string): string => {
-        // Handle DTSTART;TZID=... or DTSTART;VALUE=DATE by extracting the value after last colon-like separator
-        const val = raw.includes(':') ? raw.split(':').pop()! : raw;
-        if (val.length === 8) {
-          // DATE format: YYYYMMDD
-          return val.slice(0, 4) + '-' + val.slice(4, 6) + '-' + val.slice(6, 8) + 'T00:00:00';
-        }
-        // DATETIME: YYYYMMDDTHHmmss[Z]
-        const d = val.replace('Z', '');
-        return d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6, 8) + 'T' + d.slice(9, 11) + ':' + d.slice(11, 13) + ':' + d.slice(13, 15);
-      };
-      events.push({
-        uid: current['UID'] || undefined,
-        title,
-        startAt: parseDate(rawStart),
-        endAt: parseDate(rawEnd),
-        location: current['LOCATION'] || undefined,
-      });
-      continue;
-    }
-    if (!inEvent) continue;
-    // Parse property: key might have parameters (DTSTART;TZID=...)
-    const colonIdx = line.indexOf(':');
-    if (colonIdx < 0) continue;
-    const keyPart = line.slice(0, colonIdx);
-    const value = line.slice(colonIdx + 1);
-    // Normalize: use the base property name (before semicolon)
-    const baseKey = keyPart.split(';')[0];
-    current[baseKey] = value;
-    // Also preserve full keyPart for DATE-only detection
-    if (keyPart !== baseKey) current[keyPart] = value;
-  }
-  return events;
-}
 
 export default function CalendarPage() {
   const todayStr = getTodayStr();
@@ -86,35 +37,14 @@ export default function CalendarPage() {
     setIcsError('');
     setIcsSuccess('');
     try {
-      const text = await file.text();
-      const events = parseIcsVevents(text);
-      if (events.length === 0) { setIcsError('No events found in file.'); return; }
-      let imported = 0;
-      let skipped = 0;
-      const now = new Date().toISOString();
-      for (const evt of events) {
-        // Deduplicate by externalId (UID) or title+startAt
-        const existing = await db.calendarBlocks
-          .filter(b => (evt.uid ? b.externalId === evt.uid : false) || (b.title === evt.title && b.startAt === evt.startAt))
-          .first();
-        if (existing) { skipped++; continue; }
-        await db.calendarBlocks.add({
-          id: crypto.randomUUID(),
-          source: 'ics',
-          externalId: evt.uid || undefined,
-          title: evt.title,
-          startAt: evt.startAt,
-          endAt: evt.endAt,
-          location: evt.location || undefined,
-          convertedTaskIds: [],
-          createdAt: now,
-          updatedAt: now,
-        });
-        imported++;
-      }
-      setIcsSuccess('Imported ' + imported + ' event(s).' + (skipped > 0 ? ' Skipped ' + skipped + ' duplicate(s).' : ''));
-    } catch {
-      setIcsError('Could not import calendar file.');
+      const result = await importIcsFile(db, file);
+      setIcsSuccess(
+        'Imported ' + result.imported + ' event(s).' +
+        (result.skipped > 0 ? ' Skipped ' + result.skipped + ' duplicate(s).' : '') +
+        (result.unsupportedRecurrenceCount > 0 ? ' Recurring events imported without expansion.' : '')
+      );
+    } catch (err) {
+      setIcsError(err instanceof CalendarImportError ? err.message : 'Could not import calendar file.');
     }
     e.target.value = '';
   };

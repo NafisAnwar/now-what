@@ -76,6 +76,7 @@ export default function ImportPanel() {
     ['Daily Reviews', summary.dailyReviews],
     ['Weekly Reviews', summary.weeklyReviews],
     ['Settings', summary.settings],
+    ['Reminders', summary.reminders],
   ] : [];
 
   const row: React.CSSProperties = {

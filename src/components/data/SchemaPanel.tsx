@@ -1,7 +1,8 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db } from '../../data/db';
+import { db, getActiveDbName } from '../../data/db';
 import { getSettingsInfo } from '../../data/exportImport';
+import { getActiveProfileRecord, type LocalProfile } from '../../data/profile';
 import { useState, useEffect } from 'react';
 import type { Settings } from '../../types';
 
@@ -27,9 +28,11 @@ const valueStyle: React.CSSProperties = {
 
 export default function SchemaPanel() {
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [profile, setProfile] = useState<LocalProfile | null>(null);
 
   useEffect(() => {
     getSettingsInfo().then(setSettings);
+    getActiveProfileRecord().then(setProfile);
   }, []);
 
   const taskCount     = useLiveQuery(() => db.tasks.count(), []) ?? '—';
@@ -59,10 +62,21 @@ export default function SchemaPanel() {
       <div style={sectionLabel}>SYSTEM</div>
       <div style={row}><span style={labelStyle}>App</span><span style={valueStyle}>NOW_WHAT?</span></div>
       <div style={row}><span style={labelStyle}>Version</span><span style={valueStyle}>v0.9.0</span></div>
-      <div style={row}><span style={labelStyle}>Database</span><span style={valueStyle}>nowwhat_db</span></div>
-      <div style={row}><span style={labelStyle}>Schema version</span><span style={valueStyle}>2</span></div>
+      <div style={row}><span style={labelStyle}>Local Profile ID</span><span style={valueStyle}>{profile?.id ?? '—'}</span></div>
+      <div style={row}><span style={labelStyle}>Profile name</span><span style={valueStyle}>{profile?.displayName ?? '—'}</span></div>
+      <div style={row}>
+        <span style={labelStyle}>Profile created</span>
+        <span style={valueStyle}>{profile?.createdAt ? new Date(profile.createdAt).toLocaleString() : '—'}</span>
+      </div>
+      <div style={row}><span style={labelStyle}>Active database</span><span style={valueStyle}>{getActiveDbName()}</span></div>
+      <div style={row}><span style={labelStyle}>Schema version</span><span style={valueStyle}>{settings?.schemaVersion ?? 2}</span></div>
       <div style={row}><span style={labelStyle}>Storage</span><span style={valueStyle}>IndexedDB (local)</span></div>
+      <div style={row}><span style={labelStyle}>Local-only status</span><span style={valueStyle}>Local profile active.</span></div>
       <div style={row}><span style={labelStyle}>Stores</span><span style={valueStyle}>11</span></div>
+
+      <div className="mono" style={{ fontSize: '10px', color: 'var(--dim)', marginTop: '10px', lineHeight: 1.6 }}>
+        No account required. Data is stored in this browser.
+      </div>
 
       <div style={sectionLabel}>RECORD COUNTS</div>
       <div style={row}><span style={labelStyle}>Tasks</span><span style={valueStyle}>{taskCount}</span></div>

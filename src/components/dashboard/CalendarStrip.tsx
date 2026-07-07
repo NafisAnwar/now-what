@@ -1,17 +1,18 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
-import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
+import { getCalendarBlocksForDate } from '../../data/calendar';
+import { getTodayStr } from '../../utils/dateUtils';
 
 export default function CalendarStrip() {
   const todayStr = getTodayStr();
   const todaysBlocks = useLiveQuery(
-    () => db.calendarBlocks.filter(b => isLocalDate(b.startAt, todayStr)).toArray(),
+    () => getCalendarBlocksForDate(db, todayStr),
     [todayStr]
   ) || [];
 
   const nowMs = Date.now();
-  const sorted = [...todaysBlocks].sort((a, b) => a.startAt.localeCompare(b.startAt));
+  const sorted = todaysBlocks;
 
   if (sorted.length === 0) return null;
 

@@ -1,5 +1,7 @@
 import { db } from './db';
+import { getCalendarBlocksForDate } from './calendar';
 import { hasReviewableActivity, isDailyReviewIncomplete } from './review';
+import { getActiveProfileRecord } from './profile';
 import type { Reminder, Settings, DailyReview } from '../types';
 import { getTodayStr, localDateStr } from '../utils/dateUtils';
 
@@ -47,9 +49,11 @@ export async function updateReminderSettings(updates: Partial<Settings>): Promis
   if (all.length > 0) {
     await db.settings.update(all[0].id, { ...updates, updatedAt: now } as never);
   } else {
+    const profile = await getActiveProfileRecord();
     await db.settings.add({
       id: crypto.randomUUID(),
       theme: 'dark',
+      localProfileId: profile?.id,
       ...updates,
       createdAt: now,
       updatedAt: now,
@@ -277,7 +281,7 @@ export async function generateSystemRemindersForToday(): Promise<void> {
 
     // ── 4.3 Calendar block reminders (15 min before) ────────────────────
     if (settings.calendarRemindersEnabled && !inQuiet) {
-      const todayBlocks = await db.calendarBlocks.filter(b => localDateStr(new Date(b.startAt)) === todayStr).toArray();
+      const todayBlocks = await getCalendarBlocksForDate(db, todayStr);
       for (const block of todayBlocks) {
         const startMs = new Date(block.startAt).getTime();
         const minsBefore = (startMs - nowMs) / 60000;

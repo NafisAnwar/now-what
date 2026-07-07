@@ -1,5 +1,6 @@
 import { db } from '../data/db';
 import { isDailyReviewIncomplete } from '../data/review';
+import { getCalendarBlocksForDate } from '../data/calendar';
 import type { Task, Suggestion, SuggestionActionType, Habit, Goal, DailyPlan, CalendarBlock, DailyReview } from '../types';
 import { isLocalDate, localDateStr } from '../utils/dateUtils';
 
@@ -118,10 +119,7 @@ export async function getCurrentContext(): Promise<Context> {
   const goalLinkedPendingTasks = allTasks.filter(t => t.goalId && activeGoals.some(g => g.id === t.goalId));
   const primaryFocus = todayDailyPlan?.primaryFocus ?? null;
 
-  const todaysCalendarBlocks = await db.calendarBlocks
-    .filter(b => isLocalDate(b.startAt, todayStr))
-    .toArray();
-  todaysCalendarBlocks.sort((a, b) => a.startAt.localeCompare(b.startAt));
+  const todaysCalendarBlocks = await getCalendarBlocksForDate(db, todayStr);
 
   const nowMs = now.getTime();
   const activeCalendarBlock = todaysCalendarBlocks.find(b =>
@@ -255,8 +253,7 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
     ctx.highPriorityTasks.find(t => ctx.plannedTaskIds.includes(t.id) && t.goalId && fits(t) && !isExcluded('start_task', t.id)) ||
     ctx.highPriorityTasks.find(t => ctx.plannedTaskIds.includes(t.id) && fits(t) && !isExcluded('start_task', t.id)) ||
     ctx.highPriorityTasks.find(t => !!t.goalId && fits(t) && !isExcluded('start_task', t.id)) ||
-    ctx.highPriorityTasks.find(t => fits(t) && !isExcluded('start_task', t.id)) ||
-    ctx.highPriorityTasks.find(t => !isExcluded('start_task', t.id)); // fallback: any high priority even if doesn't fit
+    ctx.highPriorityTasks.find(t => fits(t) && !isExcluded('start_task', t.id));
   if (highTask) {
     const goalForTask = highTask.goalId ? ctx.activeGoals.find(g => g.id === highTask.goalId) : null;
     const goalNote = goalForTask ? ' Supports active goal: ' + goalForTask.title + '.' : '';

@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { db } from '../../data/db';
 import type { CalendarBlock } from '../../types';
 import { getTodayStr, localDateFromTimestamp } from '../../utils/dateUtils';
+import {
+  convertCalendarBlockToTask,
+  createManualCalendarBlock,
+  deleteCalendarBlock,
+  updateCalendarBlock,
+} from '../../data/calendar';
 
 interface Props {
   block?: CalendarBlock;
@@ -51,32 +57,25 @@ export default function CalendarBlockModal({ block, onClose }: Props) {
   const handleSave = async () => {
     if (!validate()) return;
 
-    const startAt = date + (startTime ? 'T' + startTime + ':00' : 'T00:00:00');
-    const endAt = date + (endTime ? 'T' + endTime + ':00' : 'T23:59:00');
-    const now = new Date().toISOString();
-
     if (block) {
-      await db.calendarBlocks.update(block.id, {
+      const startAt = date + (startTime ? 'T' + startTime + ':00' : 'T00:00:00');
+      const endAt = date + (endTime ? 'T' + endTime + ':00' : 'T23:59:00');
+      await updateCalendarBlock(db, block.id, {
         title,
         startAt,
         endAt,
         location: location || undefined,
         calendarName: calendarName || undefined,
-        updatedAt: now,
       });
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Block updated.' }));
     } else {
-      await db.calendarBlocks.add({
-        id: crypto.randomUUID(),
-        source: 'manual',
+      await createManualCalendarBlock(db, {
         title,
-        startAt,
-        endAt,
+        date,
+        startTime,
+        endTime,
         location: location || undefined,
         calendarName: calendarName || undefined,
-        convertedTaskIds: [],
-        createdAt: now,
-        updatedAt: now,
       });
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Block added.' }));
     }
@@ -85,36 +84,17 @@ export default function CalendarBlockModal({ block, onClose }: Props) {
 
   const handleDelete = async () => {
     if (!block) return;
-    await db.calendarBlocks.delete(block.id);
+    await deleteCalendarBlock(db, block.id);
     window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Block deleted.' }));
     onClose();
   };
 
   const handleConvertToTask = async () => {
     if (!block) return;
-    const taskId = crypto.randomUUID();
-    const blockDate = localDateFromTimestamp(block.startAt);
-    const now2 = new Date().toISOString();
-    await db.tasks.add({
-      id: taskId,
-      title: block.title,
-      category: 'Admin',
-      priority: 'medium',
-      status: 'pending',
-      energyRequired: 'medium',
-      dueDate: blockDate,
-      repeatRule: { type: 'none' },
-      notes: 'Created from calendar block.',
-      missedCount: 0,
-      carryOverHistory: [],
-      createdAt: now2,
-      updatedAt: now2,
-    });
-    await db.calendarBlocks.update(block.id, {
-      convertedTaskIds: [...(block.convertedTaskIds || []), taskId],
-      updatedAt: now2,
-    });
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task created from calendar block.' }));
+    const result = await convertCalendarBlockToTask(db, block.id);
+    window.dispatchEvent(new CustomEvent('show_toast', {
+      detail: result.created ? 'Task created from calendar block.' : 'Task already created from calendar block.'
+    }));
     window.dispatchEvent(new Event('regenerate_now_what'));
     onClose();
   };
