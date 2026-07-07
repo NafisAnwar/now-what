@@ -4,6 +4,10 @@ import { getCalendarBlocksForDate } from '../data/calendar';
 import type { Task, Suggestion, SuggestionActionType, Habit, Goal, DailyPlan, CalendarBlock, DailyReview } from '../types';
 import { isLocalDate, localDateStr } from '../utils/dateUtils';
 
+export type MoodState = 'CLEAR' | 'NEUTRAL' | 'LOW' | 'STRESSED' | 'RESTLESS' | 'OVERLOADED';
+export type EnergySignal = 'LOW' | 'MEDIUM' | 'HIGH';
+export type FocusCapacity = 'DEEP' | 'NORMAL' | 'LIGHT' | 'RECOVERY';
+
 export interface Context {
   now: Date;
   hour: number;
@@ -24,6 +28,9 @@ export interface Context {
   minutesSinceLastWater: number;
   lastEnergyValue: number | null;
   lastMoodValue: number | null;
+  latestMoodState: MoodState;
+  latestEnergyLevel: EnergySignal | null;
+  currentFocusCapacity: FocusCapacity;
   lastFocusEndAt: string | null;
   minutesSinceLastFocus: number;
   activeGoals: Goal[];
@@ -49,6 +56,305 @@ export interface CandidateAction {
   targetLabel: string;
   reason: string;
   priority: number;
+  basePriority?: number;
+  stateAdjustment?: number;
+  stateAffected?: boolean;
+  stateReason?: string;
+}
+
+interface StateSignalInput {
+  moodValue: number | null;
+  energyValue: number | null;
+  focusMinutesToday: number;
+  restMinutesToday: number;
+  distractionMinutesToday: number;
+  minutesSinceLastFocus: number;
+}
+
+interface TaskFitResult {
+  adjustment: number;
+  reason: string | null;
+}
+
+const HARD_RULES = new Set(['active_calendar_block', 'critical_overdue_task', 'closest_deadline_task']);
+
+export function normalizeEnergyLevel(value: number | null): EnergySignal | null {
+  if (value === null || !Number.isFinite(value)) return null;
+  if (value <= 2) return 'LOW';
+  if (value >= 4) return 'HIGH';
+  return 'MEDIUM';
+}
+
+export function normalizeMoodState(input: StateSignalInput): MoodState {
+  const { moodValue, energyValue, restMinutesToday, distractionMinutesToday } = input;
+  const energyLevel = normalizeEnergyLevel(energyValue);
+  const hasMood = moodValue !== null && Number.isFinite(moodValue);
+  const hasEnergy = energyValue !== null && Number.isFinite(energyValue);
+  const restlessSignal = distractionMinutesToday >= 20 && restMinutesToday < 10;
+
+  if (hasMood && hasEnergy) {
+    if (moodValue <= 2 && energyValue <= 2) return 'OVERLOADED';
+    if (moodValue <= 2 && energyValue >= 3) return 'STRESSED';
+    if (moodValue >= 4 && energyValue >= 4) return 'CLEAR';
+    if (moodValue >= 4 && energyValue <= 2) return restlessSignal ? 'RESTLESS' : 'LOW';
+  }
+
+  if (energyLevel === 'LOW') return 'LOW';
+  if (hasMood && moodValue <= 2) return 'STRESSED';
+  if (restlessSignal && energyLevel !== 'LOW') return 'RESTLESS';
+  return 'NEUTRAL';
+}
+
+export function deriveFocusCapacity(input: StateSignalInput & { moodState: MoodState; energyLevel: EnergySignal | null }): FocusCapacity {
+  const { moodState, energyLevel, focusMinutesToday, restMinutesToday, distractionMinutesToday, minutesSinceLastFocus } = input;
+  const focusWithoutRest = focusMinutesToday >= 90 && restMinutesToday < 10;
+  const recentLongFocus = minutesSinceLastFocus !== Infinity && minutesSinceLastFocus < 20 && focusMinutesToday >= 60 && restMinutesToday < 10;
+
+  if (moodState === 'OVERLOADED' || focusWithoutRest || recentLongFocus) return 'RECOVERY';
+  if (moodState === 'LOW' || moodState === 'STRESSED') return 'LIGHT';
+  if (moodState === 'RESTLESS') return distractionMinutesToday >= 20 ? 'LIGHT' : 'NORMAL';
+  if (moodState === 'CLEAR' && energyLevel === 'HIGH') return 'DEEP';
+  return 'NORMAL';
+}
+
+function taskMinutes(task: Task): number | null {
+  return typeof task.estimatedMinutes === 'number' && Number.isFinite(task.estimatedMinutes)
+    ? task.estimatedMinutes
+    : null;
+}
+
+function isShortTask(task: Task): boolean {
+  const minutes = taskMinutes(task);
+  return minutes !== null && minutes <= 30;
+}
+
+function isLongTask(task: Task): boolean {
+  const minutes = taskMinutes(task);
+  return minutes !== null && minutes >= 60;
+}
+
+function categoryText(task: Task): string {
+  return String(task.category || '').toLowerCase();
+}
+
+function isAdminOrMaintenanceTask(task: Task): boolean {
+  const category = categoryText(task);
+  return category.includes('admin') || category.includes('maintenance') || category.includes('personal');
+}
+
+function isPhysicalTask(task: Task): boolean {
+  const category = categoryText(task);
+  return category.includes('health') || category.includes('movement') || category.includes('exercise') || category.includes('physical');
+}
+
+function isUrgentTask(task: Task, ctx: Context): boolean {
+  return task.priority === 'critical' || Boolean(task.dueDate && task.dueDate <= ctx.todayStr);
+}
+
+function fitsAvailableWindow(task: Task, ctx: Context): boolean {
+  return !task.estimatedMinutes || task.estimatedMinutes <= ctx.availableWindowMinutes || task.priority === 'critical';
+}
+
+function smallestPlannedTaskMinutes(ctx: Context): number | null {
+  const plannedMinutes = ctx.pendingTasks
+    .filter(task => ctx.plannedTaskIds.includes(task.id))
+    .map(taskMinutes)
+    .filter((minutes): minutes is number => minutes !== null);
+
+  return plannedMinutes.length > 0 ? Math.min(...plannedMinutes) : null;
+}
+
+function taskBaseScore(task: Task, ctx: Context): number {
+  const priorityScore: Record<Task['priority'], number> = { critical: 5, high: 3, medium: 2, low: 1 };
+  let score = priorityScore[task.priority] ?? 0;
+
+  if (task.dueDate) {
+    if (task.dueDate < ctx.todayStr) score += 5;
+    else if (task.dueDate === ctx.todayStr) score += 4;
+    else score += 1.5;
+  }
+
+  if (ctx.plannedTaskIds.includes(task.id)) score += 2;
+  if (task.goalId) score += 1.25;
+  if (fitsAvailableWindow(task, ctx)) score += 0.5;
+  else score -= 2.5;
+  if (!task.estimatedMinutes) score -= 0.35;
+
+  return score;
+}
+
+function taskStateFit(task: Task, ctx: Context): TaskFitResult {
+  if (ctx.latestMoodState === 'NEUTRAL' && ctx.currentFocusCapacity === 'NORMAL') {
+    return { adjustment: 0, reason: null };
+  }
+
+  let adjustment = 0;
+  const minutes = taskMinutes(task);
+  const planned = ctx.plannedTaskIds.includes(task.id);
+  const goalLinked = Boolean(task.goalId);
+  const short = isShortTask(task);
+  const long = isLongTask(task);
+  const lowEnergy = task.energyRequired === 'low';
+  const highEnergy = task.energyRequired === 'high';
+  const adminOrMaintenance = isAdminOrMaintenanceTask(task);
+  const physical = isPhysicalTask(task);
+  const urgent = isUrgentTask(task, ctx);
+  const fitsWindow = fitsAvailableWindow(task, ctx);
+  const smallestPlanned = smallestPlannedTaskMinutes(ctx);
+  const isSmallestPlanned = planned && minutes !== null && smallestPlanned !== null && minutes <= smallestPlanned;
+
+  switch (ctx.latestMoodState) {
+    case 'CLEAR':
+      if (planned) adjustment += 1.6;
+      if (goalLinked) adjustment += 1.4;
+      if (task.priority === 'high' || task.priority === 'critical') adjustment += 1;
+      if (fitsWindow && minutes !== null && minutes >= 45) adjustment += 0.6;
+      if (ctx.currentFocusCapacity === 'DEEP' && highEnergy) adjustment += 0.5;
+      break;
+    case 'LOW':
+      if (lowEnergy) adjustment += 2;
+      if (short) adjustment += 1.6;
+      if (adminOrMaintenance) adjustment += 1.1;
+      if (long && highEnergy && !urgent) adjustment -= 2.4;
+      else if (highEnergy && !urgent) adjustment -= 1;
+      break;
+    case 'STRESSED':
+      if (short) adjustment += 1.7;
+      if (task.dueDate && task.dueDate <= ctx.todayStr) adjustment += 1;
+      if (planned && minutes !== null) adjustment += 1;
+      if (!task.estimatedMinutes && !urgent) adjustment -= 1.2;
+      if (long && !urgent) adjustment -= 1.5;
+      break;
+    case 'RESTLESS':
+      if (physical) adjustment += 2.4;
+      if (short) adjustment += 1;
+      if (minutes !== null && minutes <= 20) adjustment += 0.6;
+      if (long && !urgent) adjustment -= 1;
+      break;
+    case 'OVERLOADED':
+      if (isSmallestPlanned) adjustment += 2.6;
+      else if (planned) adjustment += 1;
+      if (lowEnergy) adjustment += 1.6;
+      if (short) adjustment += 1.6;
+      if (long && !urgent) adjustment -= 2.6;
+      if (highEnergy && !urgent) adjustment -= 1.2;
+      break;
+    case 'NEUTRAL':
+      break;
+  }
+
+  if (ctx.currentFocusCapacity === 'RECOVERY') {
+    if (short || lowEnergy) adjustment += 0.9;
+    if (long && highEnergy && !urgent) adjustment -= 1.8;
+  } else if (ctx.currentFocusCapacity === 'LIGHT') {
+    if (short || lowEnergy) adjustment += 0.6;
+    if (long && highEnergy && !urgent) adjustment -= 1.1;
+  } else if (ctx.currentFocusCapacity === 'DEEP') {
+    if ((planned || goalLinked || task.priority === 'high') && fitsWindow) adjustment += 0.7;
+  }
+
+  return {
+    adjustment,
+    reason: stateReasonForTask(task, ctx, adjustment),
+  };
+}
+
+function stateReasonForTask(task: Task, ctx: Context, adjustment: number): string | null {
+  if (adjustment < 1.8 || ctx.latestMoodState === 'NEUTRAL') return null;
+
+  switch (ctx.latestMoodState) {
+    case 'CLEAR':
+      return ctx.plannedTaskIds.includes(task.id)
+        ? 'Current state logged clear. Suggesting a high-value planned task.'
+        : 'Current state logged clear. Suggesting a high-value task.';
+    case 'LOW':
+      return 'Energy logged low. Suggesting a short low-friction task.';
+    case 'STRESSED':
+      return 'Current state logged stressed. Suggesting a concrete short task.';
+    case 'RESTLESS':
+      return isPhysicalTask(task)
+        ? 'Current state logged restless. Suggesting a movement-friendly task.'
+        : 'Fits current state and available time.';
+    case 'OVERLOADED':
+      return ctx.plannedTaskIds.includes(task.id)
+        ? 'Current state logged overloaded. Suggesting the smallest planned action.'
+        : 'Current state logged overloaded. Suggesting a short low-friction task.';
+    case 'NEUTRAL':
+      return null;
+  }
+}
+
+function taskReadinessScore(task: Task, ctx: Context): number {
+  return taskBaseScore(task, ctx) + taskStateFit(task, ctx).adjustment;
+}
+
+function selectTaskByReadiness(tasks: Task[], ctx: Context): Task | undefined {
+  return [...tasks].sort((a, b) => {
+    const scoreDiff = taskReadinessScore(b, ctx) - taskReadinessScore(a, ctx);
+    if (scoreDiff !== 0) return scoreDiff;
+    const aMinutes = taskMinutes(a) ?? Infinity;
+    const bMinutes = taskMinutes(b) ?? Infinity;
+    if (aMinutes !== bMinutes) return aMinutes - bMinutes;
+    return a.createdAt.localeCompare(b.createdAt);
+  })[0];
+}
+
+function appendStateReason(reason: string, note: string | null): string {
+  if (!note) return reason;
+  if (reason.includes(note)) return reason;
+  if (/low energy logged/i.test(reason) && note.startsWith('Energy logged low')) return reason;
+  return `${reason}${reason.endsWith(' ') ? '' : ' '}${note}`;
+}
+
+function candidateStateFit(candidate: CandidateAction, ctx: Context): TaskFitResult {
+  if (HARD_RULES.has(candidate.ruleName)) return { adjustment: 0, reason: null };
+
+  if (candidate.actionType === 'start_task' && candidate.targetId) {
+    const task = ctx.pendingTasks.find(t => t.id === candidate.targetId);
+    return task ? taskStateFit(task, ctx) : { adjustment: 0, reason: null };
+  }
+
+  if (ctx.latestMoodState === 'RESTLESS' && candidate.actionType === 'move') {
+    return { adjustment: 2.2, reason: 'Current state logged restless. Suggesting movement.' };
+  }
+
+  if (ctx.latestMoodState === 'OVERLOADED') {
+    if (candidate.actionType === 'review_day') {
+      return { adjustment: 2, reason: 'Current state logged overloaded. Suggesting a review action.' };
+    }
+    if (candidate.actionType === 'rest') {
+      return { adjustment: 2.2, reason: 'Current state logged overloaded. Suggesting a recovery action.' };
+    }
+  }
+
+  if (ctx.latestMoodState === 'LOW' && candidate.actionType === 'rest') {
+    return { adjustment: 1.4, reason: 'Energy logged low. Suggesting a low-friction action.' };
+  }
+
+  return { adjustment: 0, reason: null };
+}
+
+function applyStateAdjustments(candidates: CandidateAction[], ctx: Context): CandidateAction[] {
+  return candidates
+    .map(candidate => {
+      const fit = candidateStateFit(candidate, ctx);
+      const stateAffected = Math.abs(fit.adjustment) >= 1.8;
+      const shift = Math.max(-0.75, Math.min(0.85, fit.adjustment * 0.18));
+      const priority = HARD_RULES.has(candidate.ruleName)
+        ? candidate.priority
+        : Math.max(2.05, candidate.priority - shift);
+
+      return {
+        ...candidate,
+        priority,
+        basePriority: candidate.priority,
+        stateAdjustment: fit.adjustment,
+        stateAffected,
+        stateReason: stateAffected ? fit.reason ?? undefined : undefined,
+        reason: stateAffected ? appendStateReason(candidate.reason, fit.reason) : candidate.reason,
+      };
+    })
+    .sort((a, b) => a.priority - b.priority);
 }
 
 export async function getCurrentContext(): Promise<Context> {
@@ -95,6 +401,25 @@ export async function getCurrentContext(): Promise<Context> {
   allFocusLogs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const lastFocusEndAt = allFocusLogs.length > 0 ? allFocusLogs[allFocusLogs.length - 1].createdAt : null;
   const minutesSinceLastFocus = lastFocusEndAt ? (now.getTime() - new Date(lastFocusEndAt).getTime()) / 60000 : Infinity;
+  const latestEnergyLevel = normalizeEnergyLevel(lastEnergyValue);
+  const latestMoodState = normalizeMoodState({
+    moodValue: lastMoodValue,
+    energyValue: lastEnergyValue,
+    focusMinutesToday,
+    restMinutesToday,
+    distractionMinutesToday,
+    minutesSinceLastFocus,
+  });
+  const currentFocusCapacity = deriveFocusCapacity({
+    moodValue: lastMoodValue,
+    energyValue: lastEnergyValue,
+    focusMinutesToday,
+    restMinutesToday,
+    distractionMinutesToday,
+    minutesSinceLastFocus,
+    moodState: latestMoodState,
+    energyLevel: latestEnergyLevel,
+  });
 
   const allHabits = await db.habits.toArray();
   const nowHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
@@ -161,6 +486,9 @@ export async function getCurrentContext(): Promise<Context> {
     minutesSinceLastWater,
     lastEnergyValue,
     lastMoodValue,
+    latestMoodState,
+    latestEnergyLevel,
+    currentFocusCapacity,
     lastFocusEndAt,
     minutesSinceLastFocus,
     activeGoals,
@@ -193,7 +521,7 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
     );
 
   // Helper: task fits in available window OR is critical
-  const fits = (t: Task) => !t.estimatedMinutes || t.estimatedMinutes <= ctx.availableWindowMinutes || t.priority === 'critical';
+  const fits = (t: Task) => fitsAvailableWindow(t, ctx);
 
   // Rule 0: active calendar block
   if (ctx.activeCalendarBlock && !isExcluded('acknowledge_block', ctx.activeCalendarBlock.id)) {
@@ -229,7 +557,9 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
       const dateDiff = (a.dueDate || '').localeCompare(b.dueDate || '');
       if (dateDiff !== 0) return dateDiff;
       const p: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3 };
-      return p[a.priority] - p[b.priority];
+      const priorityDiff = p[a.priority] - p[b.priority];
+      if (priorityDiff !== 0) return priorityDiff;
+      return taskReadinessScore(b, ctx) - taskReadinessScore(a, ctx);
     });
     const task = sorted.find(t => !isExcluded('start_task', t.id));
     if (task) {
@@ -249,11 +579,10 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
   }
 
   // Rule 3: high priority task
-  const highTask =
-    ctx.highPriorityTasks.find(t => ctx.plannedTaskIds.includes(t.id) && t.goalId && fits(t) && !isExcluded('start_task', t.id)) ||
-    ctx.highPriorityTasks.find(t => ctx.plannedTaskIds.includes(t.id) && fits(t) && !isExcluded('start_task', t.id)) ||
-    ctx.highPriorityTasks.find(t => !!t.goalId && fits(t) && !isExcluded('start_task', t.id)) ||
-    ctx.highPriorityTasks.find(t => fits(t) && !isExcluded('start_task', t.id));
+  const highTask = selectTaskByReadiness(
+    ctx.highPriorityTasks.filter(t => fits(t) && !isExcluded('start_task', t.id)),
+    ctx
+  );
   if (highTask) {
     const goalForTask = highTask.goalId ? ctx.activeGoals.find(g => g.id === highTask.goalId) : null;
     const goalNote = goalForTask ? ' Supports active goal: ' + goalForTask.title + '.' : '';
@@ -287,8 +616,14 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
   }
 
   // Rule 4: easy task when low energy
-  if (ctx.lastEnergyValue !== null && ctx.lastEnergyValue <= 2) {
-    const task = ctx.pendingTasks.find(t => t.energyRequired === 'low' && !isExcluded('start_task', t.id));
+  if (ctx.latestEnergyLevel === 'LOW' || ctx.latestMoodState === 'LOW' || ctx.latestMoodState === 'OVERLOADED') {
+    const task = selectTaskByReadiness(
+      ctx.pendingTasks.filter(t =>
+        (t.energyRequired === 'low' || isShortTask(t) || isAdminOrMaintenanceTask(t)) &&
+        !isExcluded('start_task', t.id)
+      ),
+      ctx
+    );
     if (task) {
       candidates.push({
         ruleName: 'easy_task_low_energy',
@@ -296,7 +631,9 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
         targetId: task.id,
         command: 'START TASK',
         targetLabel: task.title,
-        reason: `Low energy logged (${ctx.lastEnergyValue}/5). Suggesting a low-energy task.`,
+        reason: ctx.lastEnergyValue !== null
+          ? `Low energy logged (${ctx.lastEnergyValue}/5). Suggesting a low-energy task.`
+          : 'Current state favors a short low-friction task.',
         priority: 4
       });
     }
@@ -354,13 +691,9 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
 
   // Rule 9: general pending task
   if (ctx.pendingTasks.length > 0) {
-    const genTask =
-      ctx.pendingTasks.find(t => ctx.plannedTaskIds.includes(t.id) && !!t.goalId && fits(t) && !isExcluded('start_task', t.id)) ||
-      ctx.pendingTasks.find(t => ctx.plannedTaskIds.includes(t.id) && fits(t) && !isExcluded('start_task', t.id)) ||
-      ctx.pendingTasks.find(t => !!t.goalId && fits(t) && !isExcluded('start_task', t.id)) ||
-      ctx.pendingTasks.find(t => t.energyRequired === 'low' && fits(t) && !isExcluded('start_task', t.id)) ||
-      ctx.pendingTasks.find(t => fits(t) && !isExcluded('start_task', t.id)) ||
-      ctx.pendingTasks.find(t => !isExcluded('start_task', t.id)); // fallback
+    const fittingTasks = ctx.pendingTasks.filter(t => fits(t) && !isExcluded('start_task', t.id));
+    const fallbackTasks = ctx.pendingTasks.filter(t => !isExcluded('start_task', t.id));
+    const genTask = selectTaskByReadiness(fittingTasks.length > 0 ? fittingTasks : fallbackTasks, ctx);
     if (genTask) {
       const goalForTask = genTask.goalId ? ctx.activeGoals.find(g => g.id === genTask.goalId) : null;
       const goalNote = goalForTask ? ' Supports active goal: ' + goalForTask.title + '.' : '';
@@ -430,7 +763,7 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
     priority: 12
   });
 
-  return candidates.sort((a, b) => a.priority - b.priority);
+  return applyStateAdjustments(candidates, ctx);
 }
 
 export function rankCandidateActions(candidates: CandidateAction[]): CandidateAction | null {
@@ -471,6 +804,9 @@ export async function generateWithDebugInfo(excludeTargets: ExcludeTarget[] = []
       incompleteHabitCount: ctx.pendingHabitsAny.length,
       latestEnergy: ctx.lastEnergyValue,
       latestMood: ctx.lastMoodValue,
+      latestMoodState: ctx.latestMoodState,
+      latestEnergyLevel: ctx.latestEnergyLevel,
+      currentFocusCapacity: ctx.currentFocusCapacity,
       waterMlToday: ctx.waterMlToday,
       minutesSinceLastWater: ctx.minutesSinceLastWater === Infinity ? null : ctx.minutesSinceLastWater,
       focusMinutesToday: ctx.focusMinutesToday,
@@ -479,6 +815,8 @@ export async function generateWithDebugInfo(excludeTargets: ExcludeTarget[] = []
       movementMinutesToday: ctx.movementMinutesToday,
       candidatesConsidered: candidates.length,
       ruleApplied: top?.ruleName ?? 'clear_state',
+      selectedStateAffected: Boolean(action.stateAffected),
+      selectedStateAdjustment: action.stateAdjustment ?? 0,
       todayReviewStatus: ctx.todayReviewStatus,
       yesterdayReviewIncomplete: ctx.yesterdayReviewIncomplete,
     }

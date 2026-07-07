@@ -41,6 +41,9 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
           <div>Pending tasks: <span style={{ color: 'var(--secondary)' }}>{context.pendingTasks.length}</span></div>
           <div>Overdue: <span style={{ color: 'var(--secondary)' }}>{context.criticalOverdueTasks.length}</span></div>
           <div>Incomplete habits: <span style={{ color: 'var(--secondary)' }}>{context.pendingHabitsAny.length}</span></div>
+          <div>State: <span style={{ color: 'var(--secondary)' }}>{context.latestMoodState}</span></div>
+          <div>Energy level: <span style={{ color: 'var(--secondary)' }}>{context.latestEnergyLevel || 'â€”'}</span></div>
+          <div>Capacity: <span style={{ color: 'var(--secondary)' }}>{context.currentFocusCapacity}</span></div>
           <div>Energy: <span style={{ color: 'var(--secondary)' }}>{context.lastEnergyValue !== null ? `${context.lastEnergyValue}/5` : '—'}</span></div>
           <div>Mood: <span style={{ color: 'var(--secondary)' }}>{context.lastMoodValue !== null ? `${context.lastMoodValue}/5` : '—'}</span></div>
           <div>Water today: <span style={{ color: 'var(--secondary)' }}>{context.waterMlToday}ml</span></div>
@@ -66,9 +69,14 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
             display: 'flex',
             gap: '8px'
           }}>
-            <span style={{ minWidth: '16px' }}>{c.priority}.</span>
+            <span style={{ minWidth: '28px' }}>{Number.isInteger(c.priority) ? c.priority : c.priority.toFixed(2)}.</span>
             <span>{c.ruleName}</span>
             <span style={{ opacity: 0.5 }}>({c.actionType})</span>
+            {c.stateAffected && (
+              <span style={{ opacity: 0.7 }}>
+                state {c.stateAdjustment && c.stateAdjustment > 0 ? '+' : ''}{c.stateAdjustment?.toFixed(1)}
+              </span>
+            )}
           </div>
         ))}
       </div>
@@ -79,6 +87,7 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
           <div className="mono" style={{ fontSize: '10px', color: 'var(--secondary)' }}>
             <div><span style={{ color: 'var(--dim)' }}>CMD:</span> {suggestion.command}</div>
             <div><span style={{ color: 'var(--dim)' }}>LBL:</span> {suggestion.targetLabel}</div>
+            <div><span style={{ color: 'var(--dim)' }}>STATE:</span> {candidates[0]?.stateAffected ? 'affected' : 'not applied'}</div>
             <div><span style={{ color: 'var(--dim)' }}>RSN:</span> {suggestion.reason.length > 60 ? suggestion.reason.substring(0, 60) + '...' : suggestion.reason}</div>
           </div>
         </div>
