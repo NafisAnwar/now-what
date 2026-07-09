@@ -12,6 +12,7 @@ export interface Context {
   now: Date;
   hour: number;
   todayStr: string;
+  yesterdayStr: string;
   pendingTasks: Task[];
   criticalOverdueTasks: Task[];
   tasksWithDeadlineToday: Task[];
@@ -41,13 +42,21 @@ export interface Context {
   goalLinkedPendingTasks: Task[];
   primaryFocus: string | null;
   todaysCalendarBlocks: CalendarBlock[];
+  totalTaskCount: number;
+  totalHabitCount: number;
+  totalCalendarBlockCount: number;
+  hasUserContext: boolean;
   activeCalendarBlock: CalendarBlock | null;
   nextCalendarBlock: CalendarBlock | null;
   minutesUntilNextBlock: number;
   availableWindowMinutes: number;
   todayReviewStatus: 'not_started' | 'in_progress' | 'complete';
   todayReviewAvailable: boolean;
+  hasReviewableActivityToday: boolean;
   yesterdayReviewIncomplete: boolean;
+  activeCooldownCount: number;
+  selectedCandidateIdentity: string | null;
+  excludedCandidateIdentities: string[];
 }
 
 export interface CandidateAction {
@@ -62,6 +71,9 @@ export interface CandidateAction {
   stateAdjustment?: number;
   stateAffected?: boolean;
   stateReason?: string;
+  identity?: string;
+  cooldownReason?: string;
+  cooldownUntil?: string;
 }
 
 interface StateSignalInput {
@@ -79,6 +91,22 @@ interface TaskFitResult {
 }
 
 const HARD_RULES = new Set(['active_calendar_block', 'critical_overdue_task', 'closest_deadline_task']);
+const STATE_RULES = new Set(['no_context_available', 'no_action_ready', 'clear_state']);
+const MINUTE_MS = 60 * 1000;
+const HOUR_MS = 60 * MINUTE_MS;
+
+interface ActiveCooldown {
+  identity: string;
+  until: string;
+  reason: string;
+}
+
+interface CooldownFilterResult {
+  candidates: CandidateAction[];
+  coolingCandidates: CandidateAction[];
+  excludedCandidateIdentities: string[];
+  activeCooldownCount: number;
+}
 
 export function normalizeEnergyLevel(value: number | null): EnergySignal | null {
   if (value === null || !Number.isFinite(value)) return null;
@@ -364,7 +392,8 @@ export async function getCurrentContext(): Promise<Context> {
   const todayStr = localDateStr(now);
   const hour = now.getHours();
 
-  const allTasks = await db.tasks.where('status').equals('pending').toArray();
+  const taskRecords = await db.tasks.toArray();
+  const allTasks = taskRecords.filter(task => task.status === 'pending');
 
   const criticalOverdueTasks = allTasks.filter(
     (t) => t.priority === 'critical' && t.dueDate && t.dueDate < todayStr
@@ -447,6 +476,7 @@ export async function getCurrentContext(): Promise<Context> {
   const goalLinkedPendingTasks = allTasks.filter(t => t.goalId && activeGoals.some(g => g.id === t.goalId));
   const primaryFocus = todayDailyPlan?.primaryFocus ?? null;
 
+  const allCalendarBlocks = await db.calendarBlocks.toArray();
   const todaysCalendarBlocks = await getCalendarBlocksForDate(db, todayStr);
 
   const nowMs = now.getTime();
@@ -470,10 +500,28 @@ export async function getCurrentContext(): Promise<Context> {
   const yesterdayStr = localDateStr(yesterday);
   const yesterdayReviewIncomplete = await isDailyReviewIncomplete(yesterdayStr);
 
+  const hasDailyPlanContext =
+    plannedTaskIds.length > 0 ||
+    plannedHabitIds.length > 0 ||
+    (todayDailyPlan?.calendarBlockIds?.length ?? 0) > 0 ||
+    (todayDailyPlan?.carryOverTaskIds?.length ?? 0) > 0 ||
+    Boolean(primaryFocus);
+
+  const hasUserContext =
+    taskRecords.length > 0 ||
+    allHabits.length > 0 ||
+    allCalendarBlocks.length > 0 ||
+    activeGoals.length > 0 ||
+    hasDailyPlanContext ||
+    meaningfulActivityCountToday > 0 ||
+    todayReviewAvailable ||
+    yesterdayReviewIncomplete;
+
   return {
     now,
     hour,
     todayStr,
+    yesterdayStr,
     pendingTasks: allTasks,
     criticalOverdueTasks,
     tasksWithDeadlineToday,
@@ -503,13 +551,21 @@ export async function getCurrentContext(): Promise<Context> {
     goalLinkedPendingTasks,
     primaryFocus,
     todaysCalendarBlocks,
+    totalTaskCount: taskRecords.length,
+    totalHabitCount: allHabits.length,
+    totalCalendarBlockCount: allCalendarBlocks.length,
+    hasUserContext,
     activeCalendarBlock,
     nextCalendarBlock,
     minutesUntilNextBlock,
     availableWindowMinutes,
     todayReviewStatus,
     todayReviewAvailable,
+    hasReviewableActivityToday: todayReviewAvailable,
     yesterdayReviewIncomplete,
+    activeCooldownCount: 0,
+    selectedCandidateIdentity: null,
+    excludedCandidateIdentities: [],
   };
 }
 
@@ -519,22 +575,7 @@ export interface ExcludeTarget {
 }
 
 function hasMeaningfulUserContext(ctx: Context): boolean {
-  const hasDailyPlanContext =
-    ctx.plannedTaskIds.length > 0 ||
-    ctx.plannedHabitIds.length > 0 ||
-    (ctx.todayDailyPlan?.calendarBlockIds?.length ?? 0) > 0 ||
-    (ctx.todayDailyPlan?.carryOverTaskIds?.length ?? 0) > 0 ||
-    Boolean(ctx.primaryFocus);
-
-  return (
-    ctx.pendingTasks.length > 0 ||
-    ctx.pendingHabitsAny.length > 0 ||
-    ctx.activeGoals.length > 0 ||
-    ctx.todaysCalendarBlocks.length > 0 ||
-    hasDailyPlanContext ||
-    ctx.meaningfulActivityCountToday > 0 ||
-    ctx.yesterdayReviewIncomplete
-  );
+  return ctx.hasUserContext;
 }
 
 function makeNoContextCandidate(): CandidateAction {
@@ -543,9 +584,197 @@ function makeNoContextCandidate(): CandidateAction {
     actionType: 'clear_state',
     command: 'NO CONTEXT AVAILABLE',
     targetLabel: 'Add a task, habit, or calendar block to activate recommendations.',
-    reason: 'NOW_WHAT? needs at least one user-created item before it can suggest the next action.',
+    reason: 'NOW_WHAT? needs user-created context before it can choose the next action.',
     priority: 12,
+    identity: 'state:no_context_available',
   };
+}
+
+function makeNoActionReadyCandidate(ctx: Context): CandidateAction {
+  const pendingTaskLine = ctx.pendingTasks.length > 0
+    ? ` ${ctx.pendingTasks.length} pending task${ctx.pendingTasks.length === 1 ? '' : 's'} available.`
+    : '';
+
+  return {
+    ruleName: 'no_action_ready',
+    actionType: 'clear_state',
+    command: 'NO ACTION READY',
+    targetLabel: 'Current recommendations are in cooldown.',
+    reason: `Dismissed actions will return when their cooldown expires or when new context is added.${pendingTaskLine}`,
+    priority: 12,
+    identity: 'state:no_action_ready',
+  };
+}
+
+function candidateIdentity(candidate: CandidateAction, ctx: Context): string {
+  switch (candidate.actionType) {
+    case 'start_task':
+      return `task:start:${candidate.targetId ?? 'unknown'}`;
+    case 'complete_habit':
+      return `habit:complete:${candidate.targetId ?? 'unknown'}`;
+    case 'log_water':
+      return 'lifestyle:water';
+    case 'log_meal':
+      return 'lifestyle:meal';
+    case 'move':
+      return 'lifestyle:movement';
+    case 'rest':
+      return 'lifestyle:rest';
+    case 'begin_focus':
+      return 'focus:begin';
+    case 'review_day':
+      return `review:daily:${candidate.ruleName === 'yesterday_review_incomplete' ? ctx.yesterdayStr : ctx.todayStr}`;
+    case 'plan_tomorrow':
+      return `plan:tomorrow:${ctx.todayStr}`;
+    case 'acknowledge_block':
+      return `calendar:block:${candidate.targetId ?? 'active'}`;
+    case 'clear_state':
+      return `state:${candidate.ruleName}`;
+    default:
+      return `${candidate.actionType}:${candidate.targetId ?? candidate.ruleName}`;
+  }
+}
+
+function withCandidateIdentities(candidates: CandidateAction[], ctx: Context): CandidateAction[] {
+  return candidates.map(candidate => ({
+    ...candidate,
+    identity: candidate.identity ?? candidateIdentity(candidate, ctx),
+  }));
+}
+
+function snapshotString(snapshot: Record<string, unknown>, key: string): string | null {
+  const value = snapshot[key];
+  return typeof value === 'string' ? value : null;
+}
+
+function suggestionIdentityFromFields(suggestion: Suggestion): string | null {
+  switch (suggestion.actionType) {
+    case 'start_task':
+      return suggestion.targetId ? `task:start:${suggestion.targetId}` : null;
+    case 'complete_habit':
+      return suggestion.targetId ? `habit:complete:${suggestion.targetId}` : null;
+    case 'log_water':
+      return 'lifestyle:water';
+    case 'log_meal':
+      return 'lifestyle:meal';
+    case 'move':
+      return 'lifestyle:movement';
+    case 'rest':
+      return 'lifestyle:rest';
+    case 'begin_focus':
+      return 'focus:begin';
+    case 'acknowledge_block':
+      return suggestion.targetId ? `calendar:block:${suggestion.targetId}` : null;
+    case 'review_day': {
+      const currentDate = snapshotString(suggestion.contextSnapshot ?? {}, 'currentDate');
+      return `review:daily:${currentDate ?? suggestion.createdAt.slice(0, 10)}`;
+    }
+    case 'plan_tomorrow':
+      return `plan:tomorrow:${suggestion.createdAt.slice(0, 10)}`;
+    case 'clear_state':
+      return null;
+    default:
+      return null;
+  }
+}
+
+function cooldownMsFor(actionType: SuggestionActionType, ruleName?: string | null): number {
+  if (ruleName === 'critical_overdue_task') return 20 * MINUTE_MS;
+  if (ruleName === 'closest_deadline_task') return 30 * MINUTE_MS;
+  if (actionType === 'review_day') return 2 * HOUR_MS;
+  if (actionType === 'complete_habit') return 45 * MINUTE_MS;
+  if (actionType === 'start_task') return 45 * MINUTE_MS;
+  if (actionType === 'log_water' || actionType === 'log_meal' || actionType === 'move' || actionType === 'rest') {
+    return 3 * HOUR_MS;
+  }
+  if (actionType === 'acknowledge_block') return 30 * MINUTE_MS;
+  return 45 * MINUTE_MS;
+}
+
+function formatLocalTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return 'later';
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+
+function cooldownUntilForSuggestion(suggestion: Suggestion): string {
+  const snapshot = suggestion.contextSnapshot ?? {};
+  const storedUntil = snapshotString(snapshot, 'cooldownUntil');
+  if (storedUntil && !Number.isNaN(new Date(storedUntil).getTime())) return storedUntil;
+
+  const dismissedAt = snapshotString(snapshot, 'dismissedAt') ?? suggestion.createdAt;
+  const baseMs = new Date(dismissedAt).getTime();
+  const safeBaseMs = Number.isNaN(baseMs) ? Date.now() : baseMs;
+  const ruleName = snapshotString(snapshot, 'ruleApplied');
+  return new Date(safeBaseMs + cooldownMsFor(suggestion.actionType, ruleName)).toISOString();
+}
+
+async function getActiveCooldowns(now: Date): Promise<Map<string, ActiveCooldown>> {
+  const dismissedSuggestions = await db.suggestions.where('status').equals('dismissed').toArray();
+  const nowMs = now.getTime();
+  const cooldowns = new Map<string, ActiveCooldown>();
+
+  for (const suggestion of dismissedSuggestions) {
+    const snapshot = suggestion.contextSnapshot ?? {};
+    const identity =
+      snapshotString(snapshot, 'cooldownIdentity') ??
+      snapshotString(snapshot, 'selectedCandidateIdentity') ??
+      suggestionIdentityFromFields(suggestion);
+
+    if (!identity) continue;
+
+    const until = cooldownUntilForSuggestion(suggestion);
+    const untilMs = new Date(until).getTime();
+    if (Number.isNaN(untilMs) || untilMs <= nowMs) continue;
+
+    const previous = cooldowns.get(identity);
+    if (!previous || new Date(previous.until).getTime() < untilMs) {
+      cooldowns.set(identity, {
+        identity,
+        until,
+        reason: `cooling down until ${formatLocalTime(until)}`,
+      });
+    }
+  }
+
+  return cooldowns;
+}
+
+function filterCandidatesForCooldown(
+  candidates: CandidateAction[],
+  cooldowns: Map<string, ActiveCooldown>
+): CooldownFilterResult {
+  const available: CandidateAction[] = [];
+  const coolingCandidates: CandidateAction[] = [];
+  const excludedCandidateIdentities: string[] = [];
+
+  for (const candidate of candidates) {
+    const identity = candidate.identity;
+    const cooldown = identity ? cooldowns.get(identity) : undefined;
+
+    if (cooldown && !STATE_RULES.has(candidate.ruleName)) {
+      coolingCandidates.push({
+        ...candidate,
+        cooldownReason: cooldown.reason,
+        cooldownUntil: cooldown.until,
+      });
+      excludedCandidateIdentities.push(`${identity} (${cooldown.reason})`);
+      continue;
+    }
+
+    available.push(candidate);
+  }
+
+  return {
+    candidates: available,
+    coolingCandidates,
+    excludedCandidateIdentities,
+    activeCooldownCount: cooldowns.size,
+  };
+}
+
+function shouldPersistSuggestion(action: CandidateAction): boolean {
+  return !STATE_RULES.has(action.ruleName);
 }
 
 export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[] = []): CandidateAction[] {
@@ -803,7 +1032,7 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
     priority: 12
   });
 
-  return applyStateAdjustments(candidates, ctx);
+  return withCandidateIdentities(applyStateAdjustments(candidates, ctx), ctx);
 }
 
 export function rankCandidateActions(candidates: CandidateAction[]): CandidateAction | null {
@@ -822,11 +1051,37 @@ export async function generateWithDebugInfo(excludeTargets: ExcludeTarget[] = []
   const shownOnes = await db.suggestions.where('status').equals('shown').toArray();
   await Promise.all(shownOnes.map(s => db.suggestions.update(s.id, { status: 'ignored' })));
 
-  const ctx = await getCurrentContext();
-  const candidates = getCandidateActions(ctx, excludeTargets);
-  const top = rankCandidateActions(candidates);
+  const baseContext = await getCurrentContext();
+  const rawCandidates = getCandidateActions(baseContext, excludeTargets);
+  const cooldowns = await getActiveCooldowns(baseContext.now);
+  const cooldownResult = filterCandidatesForCooldown(rawCandidates, cooldowns);
+  const availableActionCandidates = cooldownResult.candidates.filter(candidate => !STATE_RULES.has(candidate.ruleName));
 
-  const action = top || candidates[candidates.length - 1]; // fallback
+  let action: CandidateAction;
+  if (!baseContext.hasUserContext) {
+    action = rawCandidates[0] ?? makeNoContextCandidate();
+  } else if (availableActionCandidates.length > 0) {
+    action = rankCandidateActions(cooldownResult.candidates) ?? availableActionCandidates[0];
+  } else if (cooldownResult.excludedCandidateIdentities.length > 0) {
+    action = makeNoActionReadyCandidate(baseContext);
+  } else {
+    action = rankCandidateActions(cooldownResult.candidates) ?? rawCandidates[0] ?? makeNoContextCandidate();
+  }
+
+  action = {
+    ...action,
+    identity: action.identity ?? candidateIdentity(action, baseContext),
+  };
+
+  const context: Context = {
+    ...baseContext,
+    activeCooldownCount: cooldownResult.activeCooldownCount,
+    selectedCandidateIdentity: action.identity ?? null,
+    excludedCandidateIdentities: cooldownResult.excludedCandidateIdentities,
+  };
+
+  const debugCandidates = [...cooldownResult.candidates, ...cooldownResult.coolingCandidates]
+    .sort((a, b) => a.priority - b.priority);
 
   const suggestion: Suggestion = {
     id: crypto.randomUUID(),
@@ -838,35 +1093,46 @@ export async function generateWithDebugInfo(excludeTargets: ExcludeTarget[] = []
     reason: action.reason,
     status: 'shown',
     contextSnapshot: {
-      currentTime: ctx.now.toISOString(),
-      pendingTaskCount: ctx.pendingTasks.length,
-      overdueTaskCount: ctx.criticalOverdueTasks.length,
-      incompleteHabitCount: ctx.pendingHabitsAny.length,
-      meaningfulActivityCountToday: ctx.meaningfulActivityCountToday,
-      latestEnergy: ctx.lastEnergyValue,
-      latestMood: ctx.lastMoodValue,
-      latestMoodState: ctx.latestMoodState,
-      latestEnergyLevel: ctx.latestEnergyLevel,
-      currentFocusCapacity: ctx.currentFocusCapacity,
-      waterMlToday: ctx.waterMlToday,
-      minutesSinceLastWater: ctx.minutesSinceLastWater === Infinity ? null : ctx.minutesSinceLastWater,
-      focusMinutesToday: ctx.focusMinutesToday,
-      restMinutesToday: ctx.restMinutesToday,
-      distractionMinutesToday: ctx.distractionMinutesToday,
-      movementMinutesToday: ctx.movementMinutesToday,
-      candidatesConsidered: candidates.length,
-      ruleApplied: top?.ruleName ?? 'clear_state',
+      currentTime: context.now.toISOString(),
+      currentDate: context.todayStr,
+      pendingTaskCount: context.pendingTasks.length,
+      totalTaskCount: context.totalTaskCount,
+      totalHabitCount: context.totalHabitCount,
+      totalCalendarBlockCount: context.totalCalendarBlockCount,
+      overdueTaskCount: context.criticalOverdueTasks.length,
+      incompleteHabitCount: context.pendingHabitsAny.length,
+      meaningfulActivityCountToday: context.meaningfulActivityCountToday,
+      hasUserContext: context.hasUserContext,
+      hasReviewableActivityToday: context.hasReviewableActivityToday,
+      latestEnergy: context.lastEnergyValue,
+      latestMood: context.lastMoodValue,
+      latestMoodState: context.latestMoodState,
+      latestEnergyLevel: context.latestEnergyLevel,
+      currentFocusCapacity: context.currentFocusCapacity,
+      waterMlToday: context.waterMlToday,
+      minutesSinceLastWater: context.minutesSinceLastWater === Infinity ? null : context.minutesSinceLastWater,
+      focusMinutesToday: context.focusMinutesToday,
+      restMinutesToday: context.restMinutesToday,
+      distractionMinutesToday: context.distractionMinutesToday,
+      movementMinutesToday: context.movementMinutesToday,
+      candidatesConsidered: rawCandidates.length,
+      activeCooldownCount: context.activeCooldownCount,
+      selectedCandidateIdentity: context.selectedCandidateIdentity,
+      excludedCandidateIdentities: context.excludedCandidateIdentities,
+      ruleApplied: action.ruleName,
       selectedStateAffected: Boolean(action.stateAffected),
       selectedStateAdjustment: action.stateAdjustment ?? 0,
-      todayReviewStatus: ctx.todayReviewStatus,
-      todayReviewAvailable: ctx.todayReviewAvailable,
-      yesterdayReviewIncomplete: ctx.yesterdayReviewIncomplete,
+      todayReviewStatus: context.todayReviewStatus,
+      todayReviewAvailable: context.todayReviewAvailable,
+      yesterdayReviewIncomplete: context.yesterdayReviewIncomplete,
     }
   };
 
-  await persistSuggestion(suggestion);
+  if (shouldPersistSuggestion(action)) {
+    await persistSuggestion(suggestion);
+  }
 
-  return { suggestion, context: ctx, candidates };
+  return { suggestion, context, candidates: debugCandidates };
 }
 
 export async function generateNowWhatSuggestion(): Promise<Suggestion> {
@@ -879,7 +1145,26 @@ export async function acceptSuggestion(id: string) {
 }
 
 export async function dismissSuggestion(id: string) {
-  await db.suggestions.update(id, { status: 'dismissed' });
+  const suggestion = await db.suggestions.get(id);
+  if (!suggestion) return;
+
+  const snapshot = suggestion.contextSnapshot ?? {};
+  const ruleName = snapshotString(snapshot, 'ruleApplied');
+  const identity =
+    snapshotString(snapshot, 'selectedCandidateIdentity') ??
+    suggestionIdentityFromFields(suggestion);
+  const dismissedAt = new Date().toISOString();
+  const cooldownUntil = new Date(Date.now() + cooldownMsFor(suggestion.actionType, ruleName)).toISOString();
+
+  await db.suggestions.update(id, {
+    status: 'dismissed',
+    contextSnapshot: {
+      ...snapshot,
+      dismissedAt,
+      cooldownUntil,
+      cooldownIdentity: identity,
+    },
+  });
 }
 
 export async function completeSuggestion(id: string) {

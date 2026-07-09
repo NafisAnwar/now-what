@@ -21,33 +21,6 @@ async function waitForResolvingFrame(startedAt: number): Promise<void> {
   if (remaining > 0) await wait(remaining);
 }
 
-function isEmptyContext(context: Context | null): boolean {
-  if (!context) return false;
-
-  const hasTrackedActivity =
-    context.meaningfulActivityCountToday > 0 ||
-    context.completedTasksToday > 0 ||
-    context.waterMlToday > 0 ||
-    context.focusMinutesToday > 0 ||
-    context.restMinutesToday > 0 ||
-    context.movementMinutesToday > 0 ||
-    context.distractionMinutesToday > 0 ||
-    context.lastEnergyValue !== null ||
-    context.lastMoodValue !== null;
-
-  return (
-    context.pendingTasks.length === 0 &&
-    context.pendingHabitsAny.length === 0 &&
-    context.activeGoals.length === 0 &&
-    context.todaysCalendarBlocks.length === 0 &&
-    context.plannedTaskIds.length === 0 &&
-    context.plannedHabitIds.length === 0 &&
-    !context.primaryFocus &&
-    !context.yesterdayReviewIncomplete &&
-    !hasTrackedActivity
-  );
-}
-
 export default function NowWhatCard() {
   const [suggestion, setSuggestion] = useState<Suggestion | null>(null);
   const [context, setContext] = useState<Context | null>(null);
@@ -138,14 +111,9 @@ export default function NowWhatCard() {
 
   if (!suggestion) return null;
 
-  const emptyState = isEmptyContext(context);
-  const display = emptyState
-    ? {
-        command: 'NO CONTEXT AVAILABLE',
-        targetLabel: 'Add a task, habit, or calendar block to activate recommendations.',
-        reason: 'NOW_WHAT? needs at least one user-created item before it can suggest the next action.',
-      }
-    : suggestion;
+  const emptyState = suggestion.command === 'NO CONTEXT AVAILABLE';
+  const cooldownState = suggestion.command === 'NO ACTION READY';
+  const display = suggestion;
 
   const handleAccept = async () => {
     if (!suggestion) return;
@@ -220,9 +188,7 @@ export default function NowWhatCard() {
 
     try {
       await dismissSuggestion(activeSuggestion.id);
-      const { suggestion: newSug, context, candidates } = await generateWithDebugInfo([
-        { actionType: activeSuggestion.actionType, targetId: activeSuggestion.targetId }
-      ]);
+      const { suggestion: newSug, context, candidates } = await generateWithDebugInfo();
       setSuggestion(newSug);
       setContext(context);
       window.dispatchEvent(new CustomEvent('engine_debug_update', {
@@ -277,20 +243,67 @@ export default function NowWhatCard() {
 
       <div style={{ display: 'flex', gap: '12px' }}>
       {emptyState ? (
-        <button
-          onClick={() => window.dispatchEvent(new Event('open_task_modal'))}
-          className="mono border-hi"
-          style={{
-            background: 'var(--surface2)',
-            color: 'var(--white)',
-            padding: '8px 16px',
-            fontSize: '12px',
-            textTransform: 'uppercase',
-            cursor: 'pointer'
-          }}
-        >
-          [ADD TASK]
-        </button>
+        <>
+          <button
+            onClick={() => window.dispatchEvent(new Event('open_task_modal'))}
+            className="mono border-hi"
+            style={{
+              background: 'var(--surface2)',
+              color: 'var(--white)',
+              padding: '8px 16px',
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            [ADD TASK]
+          </button>
+          <button
+            onClick={() => window.dispatchEvent(new Event('open_habit_modal'))}
+            className="mono border-line"
+            style={{
+              background: 'transparent',
+              color: 'var(--dim)',
+              padding: '8px 16px',
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            [ADD HABIT]
+          </button>
+        </>
+      ) : cooldownState ? (
+        <>
+          <button
+            onClick={() => window.dispatchEvent(new Event('focus_task'))}
+            className="mono border-hi"
+            style={{
+              background: 'var(--surface2)',
+              color: 'var(--white)',
+              padding: '8px 16px',
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            [VIEW TASKS]
+          </button>
+          <button
+            onClick={() => window.dispatchEvent(new Event('open_task_modal'))}
+            className="mono border-line"
+            style={{
+              background: 'transparent',
+              color: 'var(--dim)',
+              padding: '8px 16px',
+              fontSize: '12px',
+              textTransform: 'uppercase',
+              cursor: 'pointer'
+            }}
+          >
+            [ADD TASK]
+          </button>
+        </>
       ) : (
         <>
         <button

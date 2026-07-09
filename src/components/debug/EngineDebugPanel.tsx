@@ -39,8 +39,14 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
         <div className="mono label" style={{ color: 'var(--white)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>CONTEXT</div>
         <div className="mono" style={{ fontSize: '10px', color: 'var(--dim)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
           <div>Pending tasks: <span style={{ color: 'var(--secondary)' }}>{context.pendingTasks.length}</span></div>
+          <div>Total tasks: <span style={{ color: 'var(--secondary)' }}>{context.totalTaskCount}</span></div>
           <div>Overdue: <span style={{ color: 'var(--secondary)' }}>{context.criticalOverdueTasks.length}</span></div>
           <div>Incomplete habits: <span style={{ color: 'var(--secondary)' }}>{context.pendingHabitsAny.length}</span></div>
+          <div>Total habits: <span style={{ color: 'var(--secondary)' }}>{context.totalHabitCount}</span></div>
+          <div>Calendar blocks: <span style={{ color: 'var(--secondary)' }}>{context.totalCalendarBlockCount}</span></div>
+          <div>Has context: <span style={{ color: 'var(--secondary)' }}>{context.hasUserContext ? 'yes' : 'no'}</span></div>
+          <div>Reviewable today: <span style={{ color: 'var(--secondary)' }}>{context.hasReviewableActivityToday ? 'yes' : 'no'}</span></div>
+          <div>Cooldowns: <span style={{ color: 'var(--secondary)' }}>{context.activeCooldownCount}</span></div>
           <div>State: <span style={{ color: 'var(--secondary)' }}>{context.latestMoodState}</span></div>
           <div>Energy level: <span style={{ color: 'var(--secondary)' }}>{context.latestEnergyLevel || 'â€”'}</span></div>
           <div>Capacity: <span style={{ color: 'var(--secondary)' }}>{context.currentFocusCapacity}</span></div>
@@ -65,18 +71,21 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
         {candidates.map((c, i) => (
           <div key={i} className="mono" style={{ 
             fontSize: '10px', 
-            color: i === 0 ? 'var(--primary)' : 'var(--dim)',
+            color: c.identity === context.selectedCandidateIdentity ? 'var(--primary)' : 'var(--dim)',
             display: 'flex',
-            gap: '8px'
+            gap: '8px',
+            flexWrap: 'wrap'
           }}>
             <span style={{ minWidth: '28px' }}>{Number.isInteger(c.priority) ? c.priority : c.priority.toFixed(2)}.</span>
             <span>{c.ruleName}</span>
             <span style={{ opacity: 0.5 }}>({c.actionType})</span>
+            {c.identity && <span style={{ opacity: 0.55 }}>{c.identity}</span>}
             {c.stateAffected && (
               <span style={{ opacity: 0.7 }}>
                 state {c.stateAdjustment && c.stateAdjustment > 0 ? '+' : ''}{c.stateAdjustment?.toFixed(1)}
               </span>
             )}
+            {c.cooldownReason && <span style={{ opacity: 0.7 }}>cooldown</span>}
           </div>
         ))}
       </div>
@@ -87,8 +96,12 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
           <div className="mono" style={{ fontSize: '10px', color: 'var(--secondary)' }}>
             <div><span style={{ color: 'var(--dim)' }}>CMD:</span> {suggestion.command}</div>
             <div><span style={{ color: 'var(--dim)' }}>LBL:</span> {suggestion.targetLabel}</div>
+            <div><span style={{ color: 'var(--dim)' }}>ID:</span> {context.selectedCandidateIdentity || 'none'}</div>
             <div><span style={{ color: 'var(--dim)' }}>STATE:</span> {candidates[0]?.stateAffected ? 'affected' : 'not applied'}</div>
             <div><span style={{ color: 'var(--dim)' }}>RSN:</span> {suggestion.reason.length > 60 ? suggestion.reason.substring(0, 60) + '...' : suggestion.reason}</div>
+            {context.excludedCandidateIdentities.length > 0 && (
+              <div><span style={{ color: 'var(--dim)' }}>EXCL:</span> {context.excludedCandidateIdentities.join(', ')}</div>
+            )}
           </div>
         </div>
       )}
