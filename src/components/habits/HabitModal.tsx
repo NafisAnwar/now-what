@@ -120,7 +120,7 @@ export default function HabitModal({ habit, onClose, onSaved }: Props) {
         position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
         background: 'var(--surface)', border: '1px solid var(--border-hi)',
         padding: '32px', width: '480px', maxWidth: 'calc(100vw - 48px)',
-        maxHeight: '80vh', overflowY: 'auto', zIndex: 101
+        maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto', overscrollBehavior: 'contain', zIndex: 101
       }} onClick={e => e.stopPropagation()}>
         
         <div style={{ marginBottom: '24px' }} className="mono label">

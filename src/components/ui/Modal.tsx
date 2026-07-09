@@ -17,7 +17,9 @@ export default function Modal({ children, onClose }: { children: React.ReactNode
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1000
+      zIndex: 1000,
+      overflowY: 'auto',
+      padding: '16px',
     }}>
       <div 
         style={{
@@ -25,6 +27,9 @@ export default function Modal({ children, onClose }: { children: React.ReactNode
           border: '1px solid var(--border-hi)',
           width: '100%',
           maxWidth: '480px',
+          maxHeight: 'calc(100dvh - 32px)',
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
           padding: '24px',
           position: 'relative'
         }}
