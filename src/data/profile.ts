@@ -8,6 +8,7 @@ import {
   getActiveDb,
   setActiveDb,
 } from './db';
+import { getOrCreateNeedsProfile } from './needsProfile';
 
 export interface LocalProfile {
   id: string;
@@ -115,6 +116,7 @@ async function getTotalRecordCount(database: NowWhatDB): Promise<number> {
     database.dailyReviews.count(),
     database.weeklyReviews.count(),
     database.reminders.count(),
+    database.needsProfiles.count(),
   ]);
 
   return counts.reduce((sum, count) => sum + count, 0);
@@ -158,6 +160,7 @@ async function copyLegacyDataIntoProfile(profile: LocalProfile, profileDb: NowWh
       dailyReviews,
       weeklyReviews,
       reminders,
+      needsProfiles,
     ] = await Promise.all([
       legacyDb.settings.toArray(),
       legacyDb.tasks.toArray(),
@@ -170,6 +173,7 @@ async function copyLegacyDataIntoProfile(profile: LocalProfile, profileDb: NowWh
       legacyDb.dailyReviews.toArray(),
       legacyDb.weeklyReviews.toArray(),
       legacyDb.reminders.toArray(),
+      legacyDb.needsProfiles.toArray(),
     ]);
 
     await profileDb.transaction('rw', [
@@ -184,6 +188,7 @@ async function copyLegacyDataIntoProfile(profile: LocalProfile, profileDb: NowWh
       profileDb.dailyReviews,
       profileDb.weeklyReviews,
       profileDb.reminders,
+      profileDb.needsProfiles,
     ], async () => {
       if (settings.length > 0) await profileDb.settings.bulkAdd(settings as never);
       if (tasks.length > 0) await profileDb.tasks.bulkAdd(tasks as never);
@@ -196,6 +201,7 @@ async function copyLegacyDataIntoProfile(profile: LocalProfile, profileDb: NowWh
       if (dailyReviews.length > 0) await profileDb.dailyReviews.bulkAdd(dailyReviews as never);
       if (weeklyReviews.length > 0) await profileDb.weeklyReviews.bulkAdd(weeklyReviews as never);
       if (reminders.length > 0) await profileDb.reminders.bulkAdd(reminders as never);
+      if (needsProfiles.length > 0) await profileDb.needsProfiles.bulkAdd(needsProfiles as never);
     });
 
     await setMetaValue(migrationKey, 'copied');
@@ -252,6 +258,7 @@ export async function initializeProfileSession(): Promise<LocalProfile> {
   await profileDb.open();
   await copyLegacyDataIntoProfile(profile, profileDb);
   await ensureProfileSettings(profile);
+  await getOrCreateNeedsProfile(profileDb);
 
   return profile;
 }

@@ -1,14 +1,15 @@
 import { db } from './db';
 import { PROFILE_SCHEMA_VERSION } from './db';
+import { getOrCreateNeedsProfile } from './needsProfile';
 import { getActiveProfileRecord } from './profile';
-import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggestion, DailyReview, WeeklyReview, Settings, Reminder } from '../types';
+import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggestion, DailyReview, WeeklyReview, Settings, Reminder, NeedsProfile } from '../types';
 
-export const EXPORT_VERSION = 2;
+export const EXPORT_VERSION = 3;
 export const SCHEMA_VERSION = PROFILE_SCHEMA_VERSION;
 export const APP_NAME = 'NOW_WHAT?';
 const STORE_NAMES = [
   'tasks', 'habits', 'goals', 'calendarBlocks', 'activityLogs',
-  'dailyPlans', 'suggestions', 'dailyReviews', 'weeklyReviews', 'settings', 'reminders',
+  'dailyPlans', 'suggestions', 'dailyReviews', 'weeklyReviews', 'settings', 'reminders', 'needsProfiles',
 ] as const;
 
 export interface BackupProfile {
@@ -36,6 +37,7 @@ export interface NowWhatBackup {
     weeklyReviews: WeeklyReview[];
     settings: Settings[];
     reminders: Reminder[];
+    needsProfiles: NeedsProfile[];
   };
 }
 
@@ -58,6 +60,7 @@ export interface ImportSummary {
   weeklyReviews: number;
   settings: number;
   reminders: number;
+  needsProfiles: number;
 }
 
 function normalizeBackupProfile(value: unknown, exportedAt: string): BackupProfile {
@@ -124,7 +127,7 @@ export async function exportDatabase(): Promise<void> {
   const profile = await getActiveProfileRecord();
   const [
     tasks, habits, goals, calendarBlocks, activityLogs,
-    dailyPlans, suggestions, dailyReviews, weeklyReviews, settings, reminders,
+    dailyPlans, suggestions, dailyReviews, weeklyReviews, settings, reminders, needsProfiles,
   ] = await Promise.all([
     db.tasks.toArray(),
     db.habits.toArray(),
@@ -137,6 +140,7 @@ export async function exportDatabase(): Promise<void> {
     db.weeklyReviews.toArray(),
     db.settings.toArray(),
     db.reminders.toArray(),
+    db.needsProfiles.toArray(),
   ]);
 
   const exportedAt = new Date().toISOString();
@@ -171,6 +175,7 @@ export async function exportDatabase(): Promise<void> {
       weeklyReviews: weeklyReviews as WeeklyReview[],
       settings: settings as Settings[],
       reminders: reminders as Reminder[],
+      needsProfiles: needsProfiles as NeedsProfile[],
     },
   };
 
@@ -217,6 +222,7 @@ export function validateBackup(data: unknown): ValidationResult {
     const value = stores[name];
     if (value === undefined) {
       if (name === 'reminders' && schemaVersion < 2) continue;
+      if (name === 'needsProfiles' && schemaVersion < 3) continue;
       return { valid: false, reason: `Backup is missing the ${name} store.` };
     }
     if (!Array.isArray(value)) {
@@ -257,6 +263,7 @@ export function validateBackup(data: unknown): ValidationResult {
       weeklyReviews: safeArr('weeklyReviews') as WeeklyReview[],
       settings: safeArr('settings') as Settings[],
       reminders: safeArr('reminders') as Reminder[],
+      needsProfiles: safeArr('needsProfiles') as NeedsProfile[],
     },
   };
 
@@ -272,6 +279,7 @@ export function validateBackup(data: unknown): ValidationResult {
     weeklyReviews: backup.stores.weeklyReviews.length,
     settings: backup.stores.settings.length,
     reminders: backup.stores.reminders.length,
+    needsProfiles: backup.stores.needsProfiles.length,
   };
 
   return { valid: true, backup, summary };
@@ -292,13 +300,13 @@ export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
   await db.transaction('rw', [
     db.tasks, db.habits, db.goals, db.calendarBlocks, db.activityLogs,
     db.dailyPlans, db.suggestions, db.dailyReviews, db.weeklyReviews,
-    db.settings, db.reminders,
+    db.settings, db.reminders, db.needsProfiles,
   ], async () => {
     await Promise.all([
       db.tasks.clear(), db.habits.clear(), db.goals.clear(),
       db.calendarBlocks.clear(), db.activityLogs.clear(), db.dailyPlans.clear(),
       db.suggestions.clear(), db.dailyReviews.clear(), db.weeklyReviews.clear(),
-      db.settings.clear(), db.reminders.clear(),
+      db.settings.clear(), db.reminders.clear(), db.needsProfiles.clear(),
     ]);
 
     await Promise.all([
@@ -313,10 +321,12 @@ export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
       stores.weeklyReviews.length > 0 ? db.weeklyReviews.bulkAdd(stores.weeklyReviews as never) : Promise.resolve(),
       settingsForActiveProfile.length > 0 ? db.settings.bulkAdd(settingsForActiveProfile as never) : Promise.resolve(),
       stores.reminders.length > 0 ? db.reminders.bulkAdd(stores.reminders as never) : Promise.resolve(),
+      stores.needsProfiles.length > 0 ? db.needsProfiles.bulkAdd(stores.needsProfiles as never) : Promise.resolve(),
     ]);
   });
 
   await touchSettings({ lastImportAt: importedAt, localProfileId: activeProfile?.id });
+  await getOrCreateNeedsProfile(db);
 }
 
 // ── Clear ────────────────────────────────────────────────────────────────────
@@ -325,13 +335,13 @@ export async function clearAllStores(): Promise<void> {
   await db.transaction('rw', [
     db.tasks, db.habits, db.goals, db.calendarBlocks, db.activityLogs,
     db.dailyPlans, db.suggestions, db.dailyReviews, db.weeklyReviews,
-    db.settings, db.reminders,
+    db.settings, db.reminders, db.needsProfiles,
   ], async () => {
     await Promise.all([
       db.tasks.clear(), db.habits.clear(), db.goals.clear(),
       db.calendarBlocks.clear(), db.activityLogs.clear(), db.dailyPlans.clear(),
       db.suggestions.clear(), db.dailyReviews.clear(), db.weeklyReviews.clear(),
-      db.settings.clear(), db.reminders.clear(),
+      db.settings.clear(), db.reminders.clear(), db.needsProfiles.clear(),
     ]);
   });
 }

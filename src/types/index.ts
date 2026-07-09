@@ -1,7 +1,59 @@
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type TaskStatus = 'pending' | 'complete' | 'skipped' | 'missed';
 export type EnergyLevel = 'low' | 'medium' | 'high';
+export type TaskEnergyRequirement = EnergyLevel;
 export type TaskCategory = 'School' | 'Work' | 'Health' | 'Admin' | 'Personal' | 'Creative' | 'Social' | 'Maintenance' | string;
+
+export type NeedType =
+  | 'school_work'
+  | 'habit_consistency'
+  | 'health_energy'
+  | 'life_admin'
+  | 'creative_projects';
+
+export type PriorityMode =
+  | 'deadline'
+  | 'critical'
+  | 'easy_start'
+  | 'daily_focus'
+  | 'energy_match';
+
+export type LowEnergyPreference =
+  | 'short_tasks'
+  | 'admin'
+  | 'recovery'
+  | 'health'
+  | 'critical_only';
+
+export type StateType =
+  | 'clear'
+  | 'neutral'
+  | 'low'
+  | 'stressed'
+  | 'restless'
+  | 'overloaded';
+
+export type FocusCapacity = 'deep' | 'normal' | 'light' | 'recovery';
+export type UserEnergyLevelValue = 1 | 2 | 3 | 4 | 5;
+export type UserEnergyBand = 'low' | 'neutral' | 'high';
+
+export interface NeedsProfile {
+  id: 'default';
+  selectedNeeds: NeedType[];
+  priorityMode: PriorityMode;
+  lowEnergyPreference: LowEnergyPreference;
+  checkInEnabled: boolean;
+  checkInIntervalHours: number;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+  onboardingCompletedAt?: string;
+  onboardingDismissedAt?: string;
+  lastStateCheckAt?: string;
+  nextStateCheckAt?: string;
+  stateCheckDismissCount?: number;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export interface RepeatRule {
   type: 'none' | 'daily' | 'weekly' | 'custom';

@@ -1,5 +1,13 @@
 import { db } from './db';
-import type { DailyReview, Reminder } from '../types';
+import {
+  getOrCreateNeedsProfile,
+  isValidQuietHour,
+  NEEDS_PROFILE_ID,
+  VALID_LOW_ENERGY_PREFERENCES,
+  VALID_NEED_TYPES,
+  VALID_PRIORITY_MODES,
+} from './needsProfile';
+import type { DailyReview, NeedType, NeedsProfile, Reminder } from '../types';
 
 export interface IntegrityIssue {
   type: 'warning' | 'error';
@@ -16,10 +24,14 @@ export interface IntegrityReport {
   checkedAt: string;
 }
 
+function isOneOf<T extends string>(value: unknown, options: readonly T[]): value is T {
+  return typeof value === 'string' && (options as readonly string[]).includes(value);
+}
+
 export async function runIntegrityChecks(): Promise<IntegrityReport> {
   const issues: IntegrityIssue[] = [];
 
-  const [tasks, habits, goals, calendarBlocks, dailyPlans, dailyReviews, activityLogs] = await Promise.all([
+  const [tasks, habits, goals, calendarBlocks, dailyPlans, dailyReviews, activityLogs, needsProfiles] = await Promise.all([
     db.tasks.toArray(),
     db.habits.toArray(),
     db.goals.toArray(),
@@ -27,12 +39,105 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
     db.dailyPlans.toArray(),
     db.dailyReviews.toArray() as Promise<DailyReview[]>,
     db.activityLogs.toArray(),
+    db.needsProfiles.toArray() as Promise<NeedsProfile[]>,
   ]);
 
   const taskIds = new Set(tasks.map(t => t.id));
   const habitIds = new Set(habits.map(h => h.id));
   const goalIds = new Set(goals.map(g => g.id));
   const blockIds = new Set(calendarBlocks.map(b => b.id));
+
+  const defaultNeedsProfile = needsProfiles.find(profile => profile.id === NEEDS_PROFILE_ID);
+  if (!defaultNeedsProfile) {
+    issues.push({
+      type: 'warning',
+      store: 'needsProfiles',
+      id: NEEDS_PROFILE_ID,
+      message: 'Default NeedsProfile is missing.',
+      fixable: true,
+      fixLabel: 'Create default NeedsProfile',
+      fix: async () => {
+        await getOrCreateNeedsProfile();
+      },
+    });
+  }
+
+  for (const profile of needsProfiles) {
+    const raw = profile as Partial<NeedsProfile> & Record<string, unknown>;
+    const selectedNeeds = raw.selectedNeeds;
+
+    if (!Array.isArray(selectedNeeds) || !selectedNeeds.every(value => isOneOf<NeedType>(value, VALID_NEED_TYPES))) {
+      issues.push({
+        type: 'error',
+        store: 'needsProfiles',
+        id: profile.id,
+        message: 'NeedsProfile has invalid selectedNeeds values.',
+      });
+    }
+
+    if (!isOneOf(raw.priorityMode, VALID_PRIORITY_MODES)) {
+      issues.push({
+        type: 'error',
+        store: 'needsProfiles',
+        id: profile.id,
+        message: `NeedsProfile has invalid priorityMode: "${String(raw.priorityMode)}".`,
+      });
+    }
+
+    if (!isOneOf(raw.lowEnergyPreference, VALID_LOW_ENERGY_PREFERENCES)) {
+      issues.push({
+        type: 'error',
+        store: 'needsProfiles',
+        id: profile.id,
+        message: `NeedsProfile has invalid lowEnergyPreference: "${String(raw.lowEnergyPreference)}".`,
+      });
+    }
+
+    if (
+      typeof raw.checkInIntervalHours !== 'number' ||
+      !Number.isInteger(raw.checkInIntervalHours) ||
+      raw.checkInIntervalHours < 1 ||
+      raw.checkInIntervalHours > 168
+    ) {
+      issues.push({
+        type: 'error',
+        store: 'needsProfiles',
+        id: profile.id,
+        message: 'NeedsProfile has invalid checkInIntervalHours.',
+      });
+    }
+
+    if (!isValidQuietHour(raw.quietHoursStart)) {
+      issues.push({
+        type: 'error',
+        store: 'needsProfiles',
+        id: profile.id,
+        message: 'NeedsProfile has invalid quietHoursStart.',
+      });
+    }
+
+    if (!isValidQuietHour(raw.quietHoursEnd)) {
+      issues.push({
+        type: 'error',
+        store: 'needsProfiles',
+        id: profile.id,
+        message: 'NeedsProfile has invalid quietHoursEnd.',
+      });
+    }
+
+    if (raw.lastStateCheckAt && raw.nextStateCheckAt) {
+      const lastMs = new Date(raw.lastStateCheckAt).getTime();
+      const nextMs = new Date(raw.nextStateCheckAt).getTime();
+      if (!Number.isNaN(lastMs) && !Number.isNaN(nextMs) && nextMs < lastMs) {
+        issues.push({
+          type: 'warning',
+          store: 'needsProfiles',
+          id: profile.id,
+          message: 'NeedsProfile nextStateCheckAt is earlier than lastStateCheckAt.',
+        });
+      }
+    }
+  }
 
   // ── Goal link integrity ──────────────────────────────────────────────────
 

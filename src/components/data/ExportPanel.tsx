@@ -22,7 +22,7 @@ export default function ExportPanel() {
       <div className="mono" style={{ fontSize: '11px', color: 'var(--dim)', marginBottom: '16px', lineHeight: 1.6 }}>
         Exports active local profile data as a JSON backup file. Includes profile metadata,
         tasks, habits, goals, calendar blocks, activity logs, daily plans, suggestions,
-        reviews, settings, and reminders.
+        reviews, settings, reminders, and recommendation profile data.
       </div>
 
       <div
