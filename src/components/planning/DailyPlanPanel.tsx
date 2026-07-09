@@ -14,6 +14,7 @@ import {
 } from '../../engine/dailyPlan';
 import type { Task, Habit, CalendarBlock } from '../../types';
 import { isLocalDate, useTodayStr } from '../../utils/dateUtils';
+import CalendarBlockModal from '../calendar/CalendarBlockModal';
 
 export default function DailyPlanPanel() {
   const todayStr = useTodayStr();
@@ -27,6 +28,7 @@ export default function DailyPlanPanel() {
   const [showTaskPicker, setShowTaskPicker] = useState(false);
   const [showHabitPicker, setShowHabitPicker] = useState(false);
   const [showBlockPicker, setShowBlockPicker] = useState(false);
+  const [isBlockModalOpen, setIsBlockModalOpen] = useState(false);
 
   useEffect(() => {
     getOrCreateTodaysPlan();
@@ -60,6 +62,11 @@ export default function DailyPlanPanel() {
     if (!plan) return;
     await setTodaysPrimaryFocus(plan.id, focusInput);
     setEditingFocus(false);
+  };
+
+  const handleCalendarBlockSaved = async (block: CalendarBlock) => {
+    const currentPlan = await getOrCreateTodaysPlan();
+    await addCalendarBlockToPlan(currentPlan.id, block.id, currentPlan.calendarBlockIds ?? []);
   };
 
   const sectionLabel: React.CSSProperties = {
@@ -315,7 +322,7 @@ export default function DailyPlanPanel() {
             </div>
           );
         })}
-        <button onClick={() => setShowBlockPicker(p => !p)} style={{ ...dimBtn, marginTop: '8px' }}>[+ ADD BLOCK]</button>
+        <button onClick={() => setIsBlockModalOpen(true)} style={{ ...dimBtn, marginTop: '8px' }}>[+ ADD BLOCK]</button>
         {showBlockPicker && (
           <div style={{ marginTop: '8px', border: '1px solid var(--border)', background: 'var(--surface2)' }}>
             {unplannedTodayBlocks.length === 0 ? (
@@ -382,6 +389,13 @@ export default function DailyPlanPanel() {
               : 'NOT STARTED'}
           </span>
         </div>
+      )}
+
+      {isBlockModalOpen && (
+        <CalendarBlockModal
+          onClose={() => setIsBlockModalOpen(false)}
+          onSaved={handleCalendarBlockSaved}
+        />
       )}
     </div>
   );

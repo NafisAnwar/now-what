@@ -134,25 +134,50 @@ export default function App() {
   }, [isProfileReady]);
 
   useEffect(() => {
+    const isTypingTarget = (target: EventTarget | null) => {
+      const element = target instanceof HTMLElement
+        ? target
+        : document.activeElement instanceof HTMLElement
+          ? document.activeElement
+          : null;
+
+      if (!element) return false;
+      const tagName = element.tagName;
+      return (
+        tagName === 'INPUT' ||
+        tagName === 'TEXTAREA' ||
+        tagName === 'SELECT' ||
+        element.isContentEditable ||
+        Boolean(element.closest('[contenteditable="true"]'))
+      );
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input/textarea
-      if (document.activeElement?.tagName === 'INPUT' ||
-          document.activeElement?.tagName === 'TEXTAREA' ||
-          document.activeElement?.tagName === 'SELECT') {
+      if (isTypingTarget(e.target)) {
         return;
       }
 
-      if (e.shiftKey && e.key === 'N') {
+      if (e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
         setDebugOpen(prev => !prev);
         return;
       }
 
       const key = e.key.toLowerCase();
-      if (key === 't') setIsTaskModalOpen(true);
-      else if (key === 'h') setIsHabitModalOpen(true);
-      else if (key === 'g') window.dispatchEvent(new Event('open_goal_modal'));
-      else if (key === 'l') setIsQuickLogModalOpen(true);
-      else if (key === 'n') {
+      if (key === 't') {
+        e.preventDefault();
+        setIsTaskModalOpen(true);
+      } else if (key === 'h') {
+        e.preventDefault();
+        setIsHabitModalOpen(true);
+      } else if (key === 'g') {
+        e.preventDefault();
+        window.dispatchEvent(new Event('open_goal_modal'));
+      } else if (key === 'l') {
+        e.preventDefault();
+        setIsQuickLogModalOpen(true);
+      } else if (key === 'n') {
+        e.preventDefault();
         window.dispatchEvent(new Event('regenerate_now_what'));
       }
     };

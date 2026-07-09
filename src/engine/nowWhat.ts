@@ -17,6 +17,7 @@ export interface Context {
   tasksWithDeadlineToday: Task[];
   highPriorityTasks: Task[];
   completedTasksToday: number;
+  meaningfulActivityCountToday: number;
   pendingHabitsInWindow: Habit[];
   pendingHabitsAny: Habit[];
   waterMlToday: number;
@@ -379,6 +380,7 @@ export async function getCurrentContext(): Promise<Context> {
 
   const todaysLogs = await db.activityLogs.filter(log => isLocalDate(log.createdAt, todayStr)).toArray();
   const completedTasksToday = todaysLogs.filter(log => log.type === 'task_completed').length;
+  const meaningfulActivityCountToday = todaysLogs.filter(log => log.type !== 'calendar').length;
 
   const waterMlToday = todaysLogs.filter(log => log.type === 'water').reduce((acc, log) => acc + (log.quantity || 0), 0);
   const focusMinutesToday = todaysLogs.filter(log => log.type === 'focus').reduce((acc, log) => acc + (log.durationMinutes || 0), 0);
@@ -475,6 +477,7 @@ export async function getCurrentContext(): Promise<Context> {
     tasksWithDeadlineToday,
     highPriorityTasks,
     completedTasksToday,
+    meaningfulActivityCountToday,
     pendingHabitsInWindow,
     pendingHabitsAny,
     waterMlToday,
@@ -512,6 +515,36 @@ export interface ExcludeTarget {
   targetId?: string;
 }
 
+function hasMeaningfulUserContext(ctx: Context): boolean {
+  const hasDailyPlanContext =
+    ctx.plannedTaskIds.length > 0 ||
+    ctx.plannedHabitIds.length > 0 ||
+    (ctx.todayDailyPlan?.calendarBlockIds?.length ?? 0) > 0 ||
+    (ctx.todayDailyPlan?.carryOverTaskIds?.length ?? 0) > 0 ||
+    Boolean(ctx.primaryFocus);
+
+  return (
+    ctx.pendingTasks.length > 0 ||
+    ctx.pendingHabitsAny.length > 0 ||
+    ctx.activeGoals.length > 0 ||
+    ctx.todaysCalendarBlocks.length > 0 ||
+    hasDailyPlanContext ||
+    ctx.meaningfulActivityCountToday > 0 ||
+    ctx.yesterdayReviewIncomplete
+  );
+}
+
+function makeNoContextCandidate(): CandidateAction {
+  return {
+    ruleName: 'no_context_available',
+    actionType: 'clear_state',
+    command: 'NO CONTEXT AVAILABLE',
+    targetLabel: 'Add a task, habit, or calendar block to activate recommendations.',
+    reason: 'NOW_WHAT? needs at least one user-created item before it can suggest the next action.',
+    priority: 12,
+  };
+}
+
 export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[] = []): CandidateAction[] {
   const candidates: CandidateAction[] = [];
 
@@ -522,6 +555,10 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
 
   // Helper: task fits in available window OR is critical
   const fits = (t: Task) => fitsAvailableWindow(t, ctx);
+
+  if (!hasMeaningfulUserContext(ctx)) {
+    return [makeNoContextCandidate()];
+  }
 
   // Rule 0: active calendar block
   if (ctx.activeCalendarBlock && !isExcluded('acknowledge_block', ctx.activeCalendarBlock.id)) {
@@ -802,6 +839,7 @@ export async function generateWithDebugInfo(excludeTargets: ExcludeTarget[] = []
       pendingTaskCount: ctx.pendingTasks.length,
       overdueTaskCount: ctx.criticalOverdueTasks.length,
       incompleteHabitCount: ctx.pendingHabitsAny.length,
+      meaningfulActivityCountToday: ctx.meaningfulActivityCountToday,
       latestEnergy: ctx.lastEnergyValue,
       latestMood: ctx.lastMoodValue,
       latestMoodState: ctx.latestMoodState,

@@ -139,8 +139,6 @@ export default function QuickLogModal({ onClose }: Props) {
           cursor: 'pointer',
           textTransform: 'uppercase'
         }}
-        onMouseEnter={e => { if (!active) e.currentTarget.style.borderColor = 'var(--primary)'; }}
-        onMouseLeave={e => { if (!active) e.currentTarget.style.borderColor = 'var(--border-hi)'; }}
       >
         {txt}
       </button>

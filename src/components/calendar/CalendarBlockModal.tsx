@@ -12,6 +12,7 @@ import {
 interface Props {
   block?: CalendarBlock;
   onClose: () => void;
+  onSaved?: (block: CalendarBlock) => void | Promise<void>;
 }
 
 const inputStyle: React.CSSProperties = {
@@ -21,7 +22,7 @@ const inputStyle: React.CSSProperties = {
   boxSizing: 'border-box',
 };
 
-export default function CalendarBlockModal({ block, onClose }: Props) {
+export default function CalendarBlockModal({ block, onClose, onSaved }: Props) {
   const todayStr = getTodayStr();
 
   const [title, setTitle] = useState(block?.title || '');
@@ -60,16 +61,18 @@ export default function CalendarBlockModal({ block, onClose }: Props) {
     if (block) {
       const startAt = date + (startTime ? 'T' + startTime + ':00' : 'T00:00:00');
       const endAt = date + (endTime ? 'T' + endTime + ':00' : 'T23:59:00');
-      await updateCalendarBlock(db, block.id, {
+      const patch = {
         title,
         startAt,
         endAt,
         location: location || undefined,
         calendarName: calendarName || undefined,
-      });
+      };
+      await updateCalendarBlock(db, block.id, patch);
+      await onSaved?.({ ...block, ...patch, updatedAt: new Date().toISOString() });
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Block updated.' }));
     } else {
-      await createManualCalendarBlock(db, {
+      const createdBlock = await createManualCalendarBlock(db, {
         title,
         date,
         startTime,
@@ -77,6 +80,7 @@ export default function CalendarBlockModal({ block, onClose }: Props) {
         location: location || undefined,
         calendarName: calendarName || undefined,
       });
+      await onSaved?.(createdBlock);
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Block added.' }));
     }
     onClose();

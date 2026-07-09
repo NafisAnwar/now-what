@@ -19,6 +19,7 @@ function isEmptyContext(context: Context | null): boolean {
   if (!context) return false;
 
   const hasTrackedActivity =
+    context.meaningfulActivityCountToday > 0 ||
     context.completedTasksToday > 0 ||
     context.waterMlToday > 0 ||
     context.focusMinutesToday > 0 ||
@@ -134,9 +135,9 @@ export default function NowWhatCard() {
   const emptyState = isEmptyContext(context);
   const display = emptyState
     ? {
-        command: 'NO AVAILABLE TASKS',
-        targetLabel: 'Add a task to use this feature.',
-        reason: 'No tasks, habits, or scheduled actions are available.',
+        command: 'NO CONTEXT AVAILABLE',
+        targetLabel: 'Add a task, habit, or calendar block to activate recommendations.',
+        reason: 'NOW_WHAT? needs at least one user-created item before it can suggest the next action.',
       }
     : suggestion;
 
@@ -181,8 +182,24 @@ export default function NowWhatCard() {
         </div>
       </div>
 
-      {!emptyState && (
-        <div style={{ display: 'flex', gap: '12px' }}>
+      <div style={{ display: 'flex', gap: '12px' }}>
+      {emptyState ? (
+        <button
+          onClick={() => window.dispatchEvent(new Event('open_task_modal'))}
+          className="mono border-hi"
+          style={{
+            background: 'var(--surface2)',
+            color: 'var(--white)',
+            padding: '8px 16px',
+            fontSize: '12px',
+            textTransform: 'uppercase',
+            cursor: 'pointer'
+          }}
+        >
+          [ADD TASK]
+        </button>
+      ) : (
+        <>
         <button
           onClick={async () => {
             await acceptSuggestion(suggestion.id);
@@ -275,8 +292,9 @@ export default function NowWhatCard() {
         >
           [DISMISS]
         </button>
-        </div>
+        </>
       )}
+      </div>
     </div>
   );
 }
