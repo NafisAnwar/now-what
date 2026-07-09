@@ -89,12 +89,16 @@ export default function TutorialPage() {
       </header>
 
       <TutorialSection index="01" title="What NOW_WHAT? Is">
-        <p>NOW_WHAT? is a local-first daily command system.</p>
         <p>
-          It helps track commitments, log activity, review the day, and choose the next action.
-          It is not a social app, gamified habit app, or motivational coach.
+          NOW_WHAT? is a local-first daily command system for tracking commitments,
+          logging activity, reviewing the day, and choosing the next action.
         </p>
-        <p>Data is stored locally in this browser/device unless you export it.</p>
+        <ul style={listStyle}>
+          <li>Not a social productivity app.</li>
+          <li>Not a gamified habit tracker.</li>
+          <li>Not a motivational coach.</li>
+          <li>Data stays in this browser/device unless exported.</li>
+        </ul>
       </TutorialSection>
 
       <TutorialSection index="02" title="Core Loop">
@@ -122,8 +126,8 @@ export default function TutorialPage() {
         <p>
           NOW_WHAT? uses rule-based, explainable logic. It considers tasks, deadlines, habits,
           daily plan, goals, calendar blocks, mood/energy/focus context, reminders, and review status.
+          It does not use AI/ML in the Hero Version.
         </p>
-        <p>It does not use AI/ML in the Hero Version.</p>
         <ul style={listStyle}>
           <li><span style={codeStyle}>REGENERATE</span> recalculates the next action.</li>
           <li><span style={codeStyle}>ACCEPT</span> follows or starts the suggested action.</li>
@@ -133,10 +137,10 @@ export default function TutorialPage() {
       </TutorialSection>
 
       <TutorialSection index="05" title="Tasks">
-        <p>Use Tasks for one-time or repeatable commitments.</p>
         <p>
-          Fields include title, priority, category, energy requirement, estimate, due date/time,
-          notes, repeat behavior, and optional goal link.
+          Use Tasks for one-time or repeatable commitments with fields for title, priority,
+          category, energy requirement, estimate, due date/time, notes, repeat behavior,
+          and optional goal link.
         </p>
         <ul style={listStyle}>
           <li>Completing a task adds it to the Activity Timeline.</li>
@@ -146,7 +150,9 @@ export default function TutorialPage() {
       </TutorialSection>
 
       <TutorialSection index="06" title="Habits">
-        <p>Use Habits for recurring routines.</p>
+        <p>
+          Use Habits for recurring routines that need simple completion tracking and review context.
+        </p>
         <ul style={listStyle}>
           <li>Habits can be boolean, quantity-based, time-based, or count-based.</li>
           <li>Habit time windows can trigger reminders and NOW_WHAT? suggestions.</li>
@@ -155,7 +161,9 @@ export default function TutorialPage() {
       </TutorialSection>
 
       <TutorialSection index="07" title="Goals">
-        <p>Use Goals to give tasks and habits long-term direction.</p>
+        <p>
+          Use Goals to give tasks and habits long-term direction without turning progress into a game.
+        </p>
         <ul style={listStyle}>
           <li>Goals can be active, paused, or complete.</li>
           <li>Progress is derived from linked tasks and habits.</li>
@@ -165,7 +173,10 @@ export default function TutorialPage() {
       </TutorialSection>
 
       <TutorialSection index="08" title="Daily Plan">
-        <p>Daily Plan is today's operating structure.</p>
+        <p>
+          Daily Plan is today's operating structure for focus, planned work, calendar context,
+          and neutral carry-over.
+        </p>
         <ul style={listStyle}>
           <li>Set a primary focus.</li>
           <li>Plan tasks, habits, and calendar blocks for the day.</li>
@@ -185,19 +196,22 @@ export default function TutorialPage() {
       </TutorialSection>
 
       <TutorialSection index="10" title="Quick Log">
-        <p>Quick Log is for fast activity capture.</p>
         <p>
-          Available logs include water, meal, focus, exercise/movement, mood, energy,
-          rest, distraction, and note.
+          Quick Log is for fast activity capture that updates Lifestyle Context, Timeline,
+          Reviews, and NOW_WHAT?.
         </p>
-        <p>Logs update Lifestyle Context, Timeline, Reviews, and NOW_WHAT?.</p>
+        <ul style={listStyle}>
+          <li>Water, meal, focus, and exercise/movement logs.</li>
+          <li>Mood, energy, rest, and distraction logs.</li>
+          <li>Notes for factual capture.</li>
+        </ul>
       </TutorialSection>
 
       <TutorialSection index="11" title="Timeline">
-        <p>Timeline is the factual record of the day.</p>
         <p>
-          It includes task completions, habit completions, quick logs, calendar context,
-          reminders/actions where applicable, and notes.
+          Timeline is the factual record of the day, including task completions,
+          habit completions, quick logs, calendar context, reminders/actions where applicable,
+          and notes.
         </p>
         <ul style={listStyle}>
           <li>Rest = intentional recovery.</li>
@@ -206,7 +220,9 @@ export default function TutorialPage() {
       </TutorialSection>
 
       <TutorialSection index="12" title="Focus / Mood / Energy">
-        <p>Mood and energy are used as operational context.</p>
+        <p>
+          Mood and energy are used as operational context for task fit, not diagnosis or coaching.
+        </p>
         <ul style={listStyle}>
           <li>They help NOW_WHAT? choose a task that fits current capacity.</li>
           <li>Low energy may favor short or low-friction tasks.</li>
@@ -226,13 +242,15 @@ export default function TutorialPage() {
       </TutorialSection>
 
       <TutorialSection index="14" title="Reminders">
-        <p>Reminders are quiet and user-controlled.</p>
+        <p>
+          Reminders are quiet, user-controlled, and action-specific.
+        </p>
         <ul style={listStyle}>
           <li>In-app reminders can appear for task due times, habit windows, calendar blocks, reviews, hydration, and movement.</li>
           <li>Manual reminders can be created without creating a task.</li>
           <li>Browser notifications require explicit opt-in.</li>
           <li>Quiet hours can suppress reminders.</li>
-          <li>Reminders are action-specific, not motivational.</li>
+          <li>No motivational reminder copy is used.</li>
         </ul>
       </TutorialSection>
 

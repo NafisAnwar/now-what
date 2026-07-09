@@ -6,9 +6,10 @@ import type { Habit } from '../../types';
 interface Props {
   habit?: Habit;
   onClose: () => void;
+  onSaved?: (habit: Habit) => void | Promise<void>;
 }
 
-export default function HabitModal({ habit, onClose }: Props) {
+export default function HabitModal({ habit, onClose, onSaved }: Props) {
   const [name, setName] = useState(habit?.name || '');
   const [category, setCategory] = useState(habit?.category || 'Health');
   const [goalId, setGoalId] = useState(habit?.goalId || '');
@@ -64,7 +65,7 @@ export default function HabitModal({ habit, onClose }: Props) {
       });
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Habit updated.' }));
     } else {
-      await db.habits.add({
+      const newHabit: Habit = {
         id: crypto.randomUUID(),
         name, category, frequency, completionType,
         targetValue: targetValue ? Number(targetValue) : undefined,
@@ -73,7 +74,9 @@ export default function HabitModal({ habit, onClose }: Props) {
         completionHistory: [],
         createdAt: now,
         updatedAt: now
-      });
+      };
+      await db.habits.add(newHabit);
+      await onSaved?.(newHabit);
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Habit added.' }));
     }
     onClose();

@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import {
   getOrCreateDailyReview,
+  hasReviewableActivity,
   refreshDailyReview,
   saveDailyReviewNote,
   completeDailyReview,
@@ -64,6 +65,7 @@ export default function DailyReviewPanel({ date }: Props) {
   const [noteText, setNoteText] = useState('');
   const [editingNote, setEditingNote] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [reviewAvailable, setReviewAvailable] = useState(false);
 
   const allTasks = useLiveQuery(() => db.tasks.toArray(), []) || [];
   const allHabits = useLiveQuery(() => db.habits.toArray(), []) || [];
@@ -72,6 +74,15 @@ export default function DailyReviewPanel({ date }: Props) {
 
   const loadReview = useCallback(async () => {
     setLoading(true);
+    const available = await hasReviewableActivity(date);
+    setReviewAvailable(available);
+    if (!available) {
+      setReview(null);
+      setNoteText('');
+      setEditingNote(false);
+      setLoading(false);
+      return;
+    }
     const r = await getOrCreateDailyReview(date);
     setReview(r);
     setNoteText(r.reflectionNote || r.reflection || '');
@@ -139,7 +150,7 @@ export default function DailyReviewPanel({ date }: Props) {
   });
 
   // Allow completing any review for today or past dates (not future)
-  const canComplete = date <= todayStr && review?.status !== 'complete';
+  const canComplete = reviewAvailable && date <= todayStr && review?.status !== 'complete';
   const reviewStatus = review?.status ?? 'draft';
   const summaryText = review?.generatedSummary ?? '';
 
@@ -147,6 +158,21 @@ export default function DailyReviewPanel({ date }: Props) {
     return (
       <div className="mono" style={{ color: 'var(--dim)', fontSize: '12px', padding: '16px 0' }}>
         GENERATING REVIEW...
+      </div>
+    );
+  }
+
+  if (!reviewAvailable) {
+    const reviewLabel = date === todayStr ? "today's review" : 'the review for this date';
+    return (
+      <div style={{
+        border: '1px solid var(--border)',
+        background: 'var(--surface)',
+        padding: '18px 20px',
+      }}>
+        <div className="mono" style={{ color: 'var(--dim)', fontSize: '12px', lineHeight: 1.6 }}>
+          No review available yet. Complete a task or log activity to generate {reviewLabel}.
+        </div>
       </div>
     );
   }

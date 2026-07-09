@@ -72,29 +72,41 @@ export function generateDailySummaryText(data: {
   return parts.length > 0 ? parts.join(' ') : 'No activity logged for this day.';
 }
 
+const REVIEWABLE_LOG_TYPES = new Set([
+  'task_completed',
+  'habit_completed',
+  'water',
+  'meal',
+  'exercise',
+  'focus',
+  'mood',
+  'energy',
+  'rest',
+  'distraction',
+  'note',
+]);
+
 export async function hasReviewableActivity(date: string): Promise<boolean> {
-  const [logs, plan] = await Promise.all([
+  const [logs, calendarTasks] = await Promise.all([
     db.activityLogs.filter(l => isLocalDate(l.createdAt, date)).toArray(),
-    db.dailyPlans.where('date').equals(date).first(),
+    db.tasks
+      .filter(task =>
+        isLocalDate(task.createdAt, date) &&
+        typeof task.notes === 'string' &&
+        task.notes.startsWith('Created from calendar block ')
+      )
+      .toArray(),
   ]);
 
-  if (logs.length > 0) return true;
-  if (!plan) return false;
-
-  return Boolean(
-    plan.primaryFocus ||
-    (plan.plannedTaskIds?.length ?? 0) > 0 ||
-    (plan.plannedHabitIds?.length ?? 0) > 0 ||
-    (plan.calendarBlockIds?.length ?? 0) > 0 ||
-    (plan.carryOverTaskIds?.length ?? 0) > 0 ||
-    Object.values(plan.lifestyleMinimums || {}).some(value => (value ?? 0) > 0)
-  );
+  return logs.some(log => REVIEWABLE_LOG_TYPES.has(log.type)) || calendarTasks.length > 0;
 }
 
 export async function isDailyReviewIncomplete(date: string): Promise<boolean> {
+  const hasActivity = await hasReviewableActivity(date);
+  if (!hasActivity) return false;
   const review = await db.dailyReviews.where('date').equals(date).first() as DailyReview | undefined;
   if (review) return review.status !== 'complete';
-  return hasReviewableActivity(date);
+  return true;
 }
 
 export async function generateDailyReviewData(date: string): Promise<

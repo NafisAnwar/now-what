@@ -6,7 +6,6 @@ import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggesti
 export const EXPORT_VERSION = 2;
 export const SCHEMA_VERSION = PROFILE_SCHEMA_VERSION;
 export const APP_NAME = 'NOW_WHAT?';
-const MANUAL_CLEAR_KEY = 'nowwhat_manual_clear';
 const STORE_NAMES = [
   'tasks', 'habits', 'goals', 'calendarBlocks', 'activityLogs',
   'dailyPlans', 'suggestions', 'dailyReviews', 'weeklyReviews', 'settings', 'reminders',
@@ -318,7 +317,6 @@ export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
   });
 
   await touchSettings({ lastImportAt: importedAt, localProfileId: activeProfile?.id });
-  localStorage.setItem(MANUAL_CLEAR_KEY, '1');
 }
 
 // ── Clear ────────────────────────────────────────────────────────────────────

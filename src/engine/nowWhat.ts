@@ -1,5 +1,5 @@
 import { db } from '../data/db';
-import { isDailyReviewIncomplete } from '../data/review';
+import { hasReviewableActivity, isDailyReviewIncomplete } from '../data/review';
 import { getCalendarBlocksForDate } from '../data/calendar';
 import type { Task, Suggestion, SuggestionActionType, Habit, Goal, DailyPlan, CalendarBlock, DailyReview } from '../types';
 import { isLocalDate, localDateStr } from '../utils/dateUtils';
@@ -46,6 +46,7 @@ export interface Context {
   minutesUntilNextBlock: number;
   availableWindowMinutes: number;
   todayReviewStatus: 'not_started' | 'in_progress' | 'complete';
+  todayReviewAvailable: boolean;
   yesterdayReviewIncomplete: boolean;
 }
 
@@ -462,6 +463,7 @@ export async function getCurrentContext(): Promise<Context> {
   // Review status
   const todayReview = await db.dailyReviews.where('date').equals(todayStr).first() as DailyReview | undefined;
   const todayReviewStatus = (todayReview?.status as 'not_started' | 'in_progress' | 'complete') ?? 'not_started';
+  const todayReviewAvailable = await hasReviewableActivity(todayStr);
 
   const yesterday = new Date(now);
   yesterday.setDate(yesterday.getDate() - 1);
@@ -506,6 +508,7 @@ export async function getCurrentContext(): Promise<Context> {
     minutesUntilNextBlock,
     availableWindowMinutes,
     todayReviewStatus,
+    todayReviewAvailable,
     yesterdayReviewIncomplete,
   };
 }
@@ -641,7 +644,7 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
   // Rule 3.5: all planned tasks done after 20:00 → elevate review
   const allPlannedDone = ctx.plannedTaskIds.length > 0 &&
     ctx.plannedTaskIds.every(id => !ctx.pendingTasks.some(t => t.id === id));
-  if (ctx.hour >= 20 && allPlannedDone && ctx.todayReviewStatus !== 'complete' && !isExcluded('review_day')) {
+  if (ctx.hour >= 20 && ctx.todayReviewAvailable && allPlannedDone && ctx.todayReviewStatus !== 'complete' && !isExcluded('review_day')) {
     candidates.push({
       ruleName: 'end_of_day_all_done',
       actionType: 'review_day',
@@ -762,7 +765,7 @@ export function getCandidateActions(ctx: Context, excludeTargets: ExcludeTarget[
   }
 
   // Rule 11: end of day review (after 20:00, review not yet complete)
-  if (ctx.hour >= 20 && ctx.todayReviewStatus !== 'complete' && !isExcluded('review_day')) {
+  if (ctx.hour >= 20 && ctx.todayReviewAvailable && ctx.todayReviewStatus !== 'complete' && !isExcluded('review_day')) {
     candidates.push({
       ruleName: 'end_of_day_review',
       actionType: 'review_day',
@@ -856,6 +859,7 @@ export async function generateWithDebugInfo(excludeTargets: ExcludeTarget[] = []
       selectedStateAffected: Boolean(action.stateAffected),
       selectedStateAdjustment: action.stateAdjustment ?? 0,
       todayReviewStatus: ctx.todayReviewStatus,
+      todayReviewAvailable: ctx.todayReviewAvailable,
       yesterdayReviewIncomplete: ctx.yesterdayReviewIncomplete,
     }
   };

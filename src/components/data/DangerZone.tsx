@@ -15,8 +15,6 @@ export default function DangerZone() {
     setClearing(true);
     try {
       await clearAllStores();
-      // Set the manual-clear guard so the app does not auto-seed on next load
-      localStorage.setItem('nowwhat_manual_clear', '1');
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Local data cleared.' }));
       setTimeout(() => window.location.reload(), 600);
     } finally {

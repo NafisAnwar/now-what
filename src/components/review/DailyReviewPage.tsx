@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { getWeekStart, generateWeeklySummary, getWeekEnd } from '../../data/review';
+import { getWeekStart, generateWeeklySummary, getWeekEnd, isDailyReviewIncomplete } from '../../data/review';
 import { useTodayStr, getYesterdayStr } from '../../utils/dateUtils';
 import { db } from '../../data/db';
 import DailyReviewPanel from './DailyReviewPanel';
-import type { WeeklyReview, DailyReview } from '../../types';
+import type { WeeklyReview } from '../../types';
 
 const sectionLabel: React.CSSProperties = {
   fontSize: '10px',
@@ -116,10 +116,7 @@ export default function DailyReviewPage() {
   const [yesterdayIncomplete, setYesterdayIncomplete] = useState(false);
 
   useEffect(() => {
-    db.dailyReviews.where('date').equals(yesterdayStr).first().then(r => {
-      const review = r as DailyReview | undefined;
-      setYesterdayIncomplete(!!review && review.status !== 'complete');
-    });
+    isDailyReviewIncomplete(yesterdayStr).then(setYesterdayIncomplete);
   }, [yesterdayStr]);
 
   useEffect(() => {

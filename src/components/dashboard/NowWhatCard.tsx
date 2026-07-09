@@ -15,6 +15,12 @@ function wait(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+async function waitForResolvingFrame(startedAt: number): Promise<void> {
+  const minDuration = prefersReducedMotion() ? 80 : 480;
+  const remaining = minDuration - (Date.now() - startedAt);
+  if (remaining > 0) await wait(remaining);
+}
+
 function isEmptyContext(context: Context | null): boolean {
   if (!context) return false;
 
@@ -141,6 +147,93 @@ export default function NowWhatCard() {
       }
     : suggestion;
 
+  const handleAccept = async () => {
+    if (!suggestion) return;
+    const activeSuggestion = suggestion;
+    const startedAt = Date.now();
+    setLoading(true);
+
+    try {
+      await acceptSuggestion(activeSuggestion.id);
+
+      const { actionType, targetId } = activeSuggestion;
+      let needsRegen = true;
+
+      if (actionType === 'start_task') {
+        window.dispatchEvent(new CustomEvent('focus_task', { detail: { taskId: targetId } }));
+        window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task started. Find it in your task list.' }));
+        needsRegen = false;
+      } else if (actionType === 'log_water' || actionType === 'rest' || actionType === 'move') {
+        window.dispatchEvent(new Event('open_quick_log'));
+        needsRegen = false;
+      } else if (actionType === 'complete_habit' && targetId) {
+        const habit = await db.habits.get(targetId);
+        if (habit) {
+          const now = new Date();
+          const todayStr = localDateStr(now);
+          if (!habit.completionHistory.some((c: { date: string }) => c.date === todayStr)) {
+            await db.habits.update(targetId, {
+              completionHistory: [...habit.completionHistory, { date: todayStr, value: 1, completedAt: now.toISOString() }]
+            });
+            await db.activityLogs.add({
+              id: crypto.randomUUID(),
+              type: 'habit_completed',
+              label: `Habit: ${habit.name}`,
+              relatedHabitId: habit.id,
+              createdAt: now.toISOString(),
+            });
+          }
+          await completeSuggestion(activeSuggestion.id);
+          window.dispatchEvent(new CustomEvent('show_toast', { detail: `Habit "${habit.name}" marked complete.` }));
+        }
+      } else if (actionType === 'review_day') {
+        if (activeSuggestion.command === 'COMPLETE REVIEW') {
+          window.dispatchEvent(new Event('navigate_review'));
+          setTimeout(() => window.dispatchEvent(new Event('navigate_review_yesterday')), 80);
+        } else {
+          window.dispatchEvent(new Event('navigate_review'));
+        }
+        needsRegen = false;
+      } else if (actionType === 'acknowledge_block') {
+        window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Block acknowledged.' }));
+      }
+
+      if (needsRegen) {
+        const { suggestion: newSug, context, candidates } = await generateWithDebugInfo();
+        setSuggestion(newSug);
+        setContext(context);
+        window.dispatchEvent(new CustomEvent('engine_debug_update', {
+          detail: { context, candidates, suggestion: newSug }
+        }));
+      }
+    } finally {
+      await waitForResolvingFrame(startedAt);
+      setLoading(false);
+    }
+  };
+
+  const handleDismiss = async () => {
+    if (!suggestion) return;
+    const activeSuggestion = suggestion;
+    const startedAt = Date.now();
+    setLoading(true);
+
+    try {
+      await dismissSuggestion(activeSuggestion.id);
+      const { suggestion: newSug, context, candidates } = await generateWithDebugInfo([
+        { actionType: activeSuggestion.actionType, targetId: activeSuggestion.targetId }
+      ]);
+      setSuggestion(newSug);
+      setContext(context);
+      window.dispatchEvent(new CustomEvent('engine_debug_update', {
+        detail: { context, candidates, suggestion: newSug }
+      }));
+    } finally {
+      await waitForResolvingFrame(startedAt);
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{
       backgroundColor: 'var(--surface)',
@@ -201,58 +294,7 @@ export default function NowWhatCard() {
       ) : (
         <>
         <button
-          onClick={async () => {
-            await acceptSuggestion(suggestion.id);
-
-            const { actionType, targetId } = suggestion;
-            let needsRegen = true;
-
-            if (actionType === 'start_task') {
-              window.dispatchEvent(new CustomEvent('focus_task', { detail: { taskId: targetId } }));
-              window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task started. Find it in your task list.' }));
-            } else if (actionType === 'log_water' || actionType === 'rest' || actionType === 'move') {
-              window.dispatchEvent(new Event('open_quick_log'));
-              needsRegen = false; // QuickLog close will trigger regen via regenerate_now_what
-            } else if (actionType === 'complete_habit' && targetId) {
-              // Complete the habit inline, matching the same pipeline as HabitRow
-              const habit = await db.habits.get(targetId);
-              if (habit) {
-                const now = new Date();
-                const todayStr = localDateStr(now);
-                if (!habit.completionHistory.some((c: { date: string }) => c.date === todayStr)) {
-                  await db.habits.update(targetId, {
-                    completionHistory: [...habit.completionHistory, { date: todayStr, value: 1, completedAt: now.toISOString() }]
-                  });
-                  await db.activityLogs.add({
-                    id: crypto.randomUUID(),
-                    type: 'habit_completed',
-                    label: `Habit: ${habit.name}`,
-                    relatedHabitId: habit.id,
-                    createdAt: now.toISOString(),
-                  });
-                }
-                await completeSuggestion(suggestion.id);
-                window.dispatchEvent(new CustomEvent('show_toast', { detail: `Habit "${habit.name}" marked complete.` }));
-              }
-            } else if (actionType === 'review_day') {
-              // Navigate to review page; if this was the "yesterday incomplete" rule, open yesterday's panel
-              if (suggestion.command === 'COMPLETE REVIEW') {
-                window.dispatchEvent(new Event('navigate_review'));
-                // Small delay so the page mounts before we switch the date
-                setTimeout(() => window.dispatchEvent(new Event('navigate_review_yesterday')), 80);
-              } else {
-                window.dispatchEvent(new Event('navigate_review'));
-              }
-              needsRegen = false;
-            } else if (actionType === 'acknowledge_block') {
-              window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Block acknowledged.' }));
-            }
-            // clear_state: no-op
-
-            if (needsRegen) {
-              setTimeout(() => generate(), 100);
-            }
-          }}
+          onClick={handleAccept}
           className="mono border-hi"
           style={{
             background: 'var(--surface2)',
@@ -266,20 +308,7 @@ export default function NowWhatCard() {
           [ACCEPT]
         </button>
         <button
-          onClick={async () => {
-            await dismissSuggestion(suggestion.id);
-            setLoading(true);
-            // Pass the dismissed target as an exclusion so the engine picks something different
-            const { suggestion: newSug, context, candidates } = await generateWithDebugInfo([
-              { actionType: suggestion.actionType, targetId: suggestion.targetId }
-            ]);
-            setSuggestion(newSug);
-            setContext(context);
-            window.dispatchEvent(new CustomEvent('engine_debug_update', {
-              detail: { context, candidates, suggestion: newSug }
-            }));
-            setLoading(false);
-          }}
+          onClick={handleDismiss}
           className="mono border-line"
           style={{
             background: 'transparent',

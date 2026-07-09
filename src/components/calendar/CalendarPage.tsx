@@ -20,14 +20,13 @@ export default function CalendarPage() {
   const nowMs = Date.now();
   const in14Days = localDateStr(new Date(nowMs + 14 * 24 * 60 * 60 * 1000));
 
-  const todayBlocks = allBlocks.filter(b => isLocalDate(b.startAt, todayStr));
-  const upcomingBlocks = allBlocks.filter(b => {
-    const blockDate = localDateFromTimestamp(b.startAt);
+  const todayBlocks = allBlocks.filter(block => isLocalDate(block.startAt, todayStr));
+  const upcomingBlocks = allBlocks.filter(block => {
+    const blockDate = localDateFromTimestamp(block.startAt);
     return blockDate > todayStr && blockDate <= in14Days;
   });
-  const pastBlocks = allBlocks.filter(b => localDateFromTimestamp(b.startAt) < todayStr);
+  const pastBlocks = allBlocks.filter(block => localDateFromTimestamp(block.startAt) < todayStr);
 
-  // Use Date.getTime() for numeric comparison — avoids timezone issues with ISO string comparison
   const isActive = (block: CalendarBlock) =>
     nowMs >= new Date(block.startAt).getTime() && nowMs <= new Date(block.endAt).getTime();
 
@@ -36,6 +35,7 @@ export default function CalendarPage() {
     if (!file) return;
     setIcsError('');
     setIcsSuccess('');
+
     try {
       const result = await importIcsFile(db, file);
       setIcsSuccess(
@@ -46,6 +46,7 @@ export default function CalendarPage() {
     } catch (err) {
       setIcsError(err instanceof CalendarImportError ? err.message : 'Could not import calendar file.');
     }
+
     e.target.value = '';
   };
 
@@ -64,106 +65,119 @@ export default function CalendarPage() {
     setEditingBlock(undefined);
   };
 
+  const sectionStyle: React.CSSProperties = {
+    borderTop: '1px solid var(--border)',
+    padding: '18px 0 22px',
+  };
+
+  const sectionHeaderStyle: React.CSSProperties = {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: '12px',
+    marginBottom: '12px',
+  };
+
   const sectionLabel: React.CSSProperties = {
     fontSize: '10px',
     color: 'var(--dim)',
     fontFamily: 'var(--mono)',
     textTransform: 'uppercase',
     letterSpacing: '0.08em',
-    marginBottom: '8px',
-    marginTop: '24px',
   };
 
+  const emptyStyle: React.CSSProperties = {
+    fontSize: '12px',
+    color: 'var(--dim)',
+    padding: '2px 0',
+  };
+
+  const renderBlocks = (blocks: CalendarBlock[]) => (
+    <div>
+      {blocks.map(block => (
+        <CalendarBlockRow
+          key={block.id}
+          block={block}
+          isActive={isActive(block)}
+          onEdit={() => openEdit(block)}
+        />
+      ))}
+    </div>
+  );
+
   return (
-    <div style={{ maxWidth: '640px', margin: '0 auto', padding: '0 0 64px' }}>
-      {/* Page header */}
+    <div style={{ maxWidth: '720px', margin: '0 auto', padding: '0 0 64px' }}>
       <div style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '8px',
+        paddingBottom: '16px',
       }}>
         <div className="mono label" style={{ fontSize: '14px' }}>CALENDAR</div>
         <button
           onClick={openNew}
           className="mono"
           style={{
-            background: 'transparent', border: '1px solid var(--border-hi)',
-            color: 'var(--dim)', fontSize: '11px', padding: '4px 10px',
-            cursor: 'pointer', textTransform: 'uppercase',
+            background: 'transparent',
+            border: '1px solid var(--border-hi)',
+            color: 'var(--dim)',
+            fontSize: '11px',
+            padding: '4px 10px',
+            cursor: 'pointer',
+            textTransform: 'uppercase',
           }}
         >
           [+ ADD BLOCK]
         </button>
       </div>
 
-      {/* TODAY */}
-      <div style={sectionLabel}>TODAY</div>
-      {todayBlocks.length === 0 ? (
-        <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)', marginBottom: '8px' }}>
-          no blocks for today
+      <section style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <div style={sectionLabel}>TODAY</div>
         </div>
-      ) : (
-        todayBlocks.map(block => (
-          <CalendarBlockRow
-            key={block.id}
-            block={block}
-            isActive={isActive(block)}
-            onEdit={() => openEdit(block)}
-          />
-        ))
-      )}
+        {todayBlocks.length === 0 ? (
+          <div className="mono" style={emptyStyle}>no blocks for today</div>
+        ) : renderBlocks(todayBlocks)}
+      </section>
 
-      {/* UPCOMING (up to 14 days) */}
-      <div style={sectionLabel}>UPCOMING (14 DAYS)</div>
-      {upcomingBlocks.length === 0 ? (
-        <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)', marginBottom: '8px' }}>
-          no upcoming blocks
+      <section style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <div style={sectionLabel}>UPCOMING</div>
+          <div className="mono" style={{ fontSize: '10px', color: 'var(--dim)' }}>14 DAYS</div>
         </div>
-      ) : (
-        upcomingBlocks.map(block => (
-          <CalendarBlockRow
-            key={block.id}
-            block={block}
-            isActive={false}
-            onEdit={() => openEdit(block)}
-          />
-        ))
-      )}
+        {upcomingBlocks.length === 0 ? (
+          <div className="mono" style={emptyStyle}>no upcoming blocks</div>
+        ) : renderBlocks(upcomingBlocks)}
+      </section>
 
-      {/* PAST (collapsed) */}
-      <div style={{ ...sectionLabel, display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <span>PAST</span>
-        <button
-          onClick={() => setShowPast(p => !p)}
-          className="mono"
-          style={{
-            background: 'transparent', border: 'none',
-            color: 'var(--dim)', fontSize: '10px',
-            cursor: 'pointer', padding: 0,
-          }}
-        >
-          {showPast ? '[HIDE]' : `[SHOW PAST (${pastBlocks.length})]`}
-        </button>
-      </div>
-      {showPast && (
-        pastBlocks.length === 0 ? (
-          <div className="mono" style={{ fontSize: '12px', color: 'var(--dim)', marginBottom: '8px' }}>
-            no past blocks
-          </div>
-        ) : (
-          pastBlocks.map(block => (
-            <CalendarBlockRow
-              key={block.id}
-              block={block}
-              isActive={false}
-              onEdit={() => openEdit(block)}
-            />
-          ))
-        )
-      )}
+      <section style={sectionStyle}>
+        <div style={sectionHeaderStyle}>
+          <div style={sectionLabel}>PAST</div>
+          {pastBlocks.length > 0 && (
+            <button
+              onClick={() => setShowPast(prev => !prev)}
+              className="mono"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--dim)',
+                fontSize: '10px',
+                cursor: 'pointer',
+                padding: 0,
+              }}
+            >
+              {showPast ? '[HIDE]' : `[SHOW PAST (${pastBlocks.length})]`}
+            </button>
+          )}
+        </div>
+        {pastBlocks.length === 0 ? (
+          <div className="mono" style={emptyStyle}>no past blocks</div>
+        ) : showPast ? renderBlocks(pastBlocks) : null}
+      </section>
 
-      {/* ICS IMPORT */}
-      <div style={{ marginTop: '32px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-        <div className="label" style={{ marginBottom: '8px' }}>IMPORT .ICS FILE</div>
+      <section style={sectionStyle}>
+        <div className="label" style={{ marginBottom: '10px' }}>IMPORT .ICS FILE</div>
         <input
           id="calendar-ics-import"
           type="file"
@@ -184,15 +198,13 @@ export default function CalendarPage() {
             {icsSuccess}
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Future integrations placeholder */}
-      <div style={{ marginTop: '24px', borderTop: '1px solid var(--border)', paddingTop: '16px' }}>
-        <div className="mono" style={{ fontSize: '11px', color: 'var(--dim)' }}>Google Calendar — connect later</div>
-        <div className="mono" style={{ fontSize: '11px', color: 'var(--dim)', marginTop: '6px' }}>Apple Calendar — connect later</div>
-      </div>
+      <section style={sectionStyle}>
+        <div className="mono" style={{ fontSize: '11px', color: 'var(--dim)' }}>Google Calendar - connect later</div>
+        <div className="mono" style={{ fontSize: '11px', color: 'var(--dim)', marginTop: '6px' }}>Apple Calendar - connect later</div>
+      </section>
 
-      {/* Modal */}
       {isModalOpen && (
         <CalendarBlockModal block={editingBlock} onClose={handleClose} />
       )}

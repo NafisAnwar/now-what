@@ -2,8 +2,14 @@ import React, { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Modal from '../ui/Modal';
 import { db } from '../../data/db';
+import type { Task } from '../../types';
 
-export default function TaskModal({ onClose }: { onClose: () => void }) {
+interface Props {
+  onClose: () => void;
+  onSaved?: (task: Task) => void | Promise<void>;
+}
+
+export default function TaskModal({ onClose, onSaved }: Props) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Work');
   const [priority, setPriority] = useState('medium');
@@ -22,7 +28,7 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
 
     const now = new Date().toISOString();
     
-    await db.tasks.add({
+    const task: Task = {
       id: crypto.randomUUID(),
       title: title.trim(),
       category,
@@ -38,7 +44,10 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
       carryOverHistory: [],
       createdAt: now,
       updatedAt: now
-    });
+    };
+
+    await db.tasks.add(task);
+    await onSaved?.(task);
 
     window.dispatchEvent(new Event('regenerate_now_what'));
     window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task added.' }));

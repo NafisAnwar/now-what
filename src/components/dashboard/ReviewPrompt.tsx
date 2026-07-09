@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation } from 'wouter';
 import { db } from '../../data/db';
-import { isDailyReviewIncomplete } from '../../data/review';
+import { hasReviewableActivity, isDailyReviewIncomplete } from '../../data/review';
 import type { DailyReview } from '../../types';
 import { getTodayStr, getYesterdayStr } from '../../utils/dateUtils';
 
@@ -18,8 +18,11 @@ export default function ReviewPrompt() {
 
     // Today's review after 20:00
     if (hour >= 20) {
-      const todayReview = await db.dailyReviews.where('date').equals(todayStr).first() as DailyReview | undefined;
-      setShowTodayPrompt(!todayReview || todayReview.status !== 'complete');
+      const [todayReview, hasTodayActivity] = await Promise.all([
+        db.dailyReviews.where('date').equals(todayStr).first() as Promise<DailyReview | undefined>,
+        hasReviewableActivity(todayStr),
+      ]);
+      setShowTodayPrompt(hasTodayActivity && (!todayReview || todayReview.status !== 'complete'));
     } else {
       setShowTodayPrompt(false);
     }

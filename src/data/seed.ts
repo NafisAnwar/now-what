@@ -2,15 +2,11 @@ import { db } from './db';
 import type { Task, ActivityLog } from '../types';
 import { getTodayStr, getYesterdayStr } from '../utils/dateUtils';
 
-const MANUAL_CLEAR_KEY = 'nowwhat_manual_clear';
-
 export async function seedIfEmpty() {
   // Normal launches start clean. Demo data is only inserted by explicit reset.
 }
 
 export async function reseedWithDemoData() {
-  // Remove the manual-clear guard so future reloads can seed again
-  localStorage.removeItem(MANUAL_CLEAR_KEY);
   await _seed();
 }
 
