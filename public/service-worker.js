@@ -1,5 +1,5 @@
-// NOW_WHAT? Service Worker - nowwhat-shell-v0.9.1
-const CACHE_NAME = 'nowwhat-shell-v0.9.1';
+// NOW_WHAT? Service Worker - nowwhat-shell-v1.1.0
+const CACHE_NAME = 'nowwhat-shell-v1.1.0';
 const DEV_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
 const IS_DEV_HOST = DEV_HOSTS.has(self.location.hostname);
 const FONT_ORIGINS = new Set([

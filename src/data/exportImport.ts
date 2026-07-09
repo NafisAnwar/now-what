@@ -100,7 +100,7 @@ async function getOrCreateSettings(): Promise<Settings> {
   const s: Settings = {
     id: crypto.randomUUID(),
     theme: 'dark',
-    appVersion: '0.9.0',
+    appVersion: '1.1.0',
     schemaVersion: SCHEMA_VERSION,
     localProfileId: profile?.id,
     createdAt: now,

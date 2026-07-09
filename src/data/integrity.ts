@@ -259,7 +259,7 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
   const reminders = await db.reminders.toArray() as Reminder[];
   const validTypes = new Set([
     'task_due', 'habit_window', 'calendar_block', 'planned_focus',
-    'daily_review', 'previous_review', 'hydration', 'movement', 'custom',
+    'daily_review', 'previous_review', 'hydration', 'movement', 'manual', 'custom',
   ]);
   const validStatuses = new Set(['scheduled', 'sent', 'dismissed', 'completed', 'cancelled']);
 

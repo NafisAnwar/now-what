@@ -6,6 +6,7 @@ interface Props {
   showActions?: boolean;
   onDismiss?: () => void;
   onComplete?: () => void;
+  onCancel?: () => void;
 }
 
 const TYPE_LABELS: Record<string, string> = {
@@ -17,6 +18,7 @@ const TYPE_LABELS: Record<string, string> = {
   previous_review: 'REVIEW',
   hydration: 'HYDRATION',
   movement: 'MOVEMENT',
+  manual: 'MANUAL',
   custom: 'CUSTOM',
 };
 
@@ -28,10 +30,13 @@ const STATUS_LABELS: Record<string, string> = {
   cancelled: 'CANCELLED',
 };
 
-export default function ReminderRow({ reminder, showActions, onDismiss, onComplete }: Props) {
+export default function ReminderRow({ reminder, showActions, onDismiss, onComplete, onCancel }: Props) {
   const typeLabel = TYPE_LABELS[reminder.type] ?? reminder.type.toUpperCase();
   const statusLabel = STATUS_LABELS[reminder.status] ?? reminder.status.toUpperCase();
-  const time = new Date(reminder.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const scheduled = new Date(reminder.scheduledAt);
+  const date = scheduled.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  const time = scheduled.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const showMessage = reminder.message && reminder.message !== 'Manual reminder.';
 
   return (
     <div style={{
@@ -59,14 +64,20 @@ export default function ReminderRow({ reminder, showActions, onDismiss, onComple
           {reminder.title}
         </span>
         <span className="mono" style={{ fontSize: '9px', color: 'var(--dim)', flexShrink: 0 }}>
-          {time}
+          {date} {time}
         </span>
         <span className="mono" style={{ fontSize: '9px', color: 'var(--dim)', flexShrink: 0, minWidth: '60px', textAlign: 'right' }}>
           {statusLabel}
         </span>
       </div>
 
-      {showActions && (onDismiss || onComplete) && (
+      {showMessage && (
+        <div style={{ fontSize: '11px', color: 'var(--secondary)', lineHeight: 1.5, paddingLeft: '0' }}>
+          {reminder.message}
+        </div>
+      )}
+
+      {showActions && (onDismiss || onComplete || onCancel) && (
         <div style={{ display: 'flex', gap: '8px', marginLeft: '0' }}>
           {onComplete && (
             <button
@@ -92,6 +103,19 @@ export default function ReminderRow({ reminder, showActions, onDismiss, onComple
               }}
             >
               [DISMISS]
+            </button>
+          )}
+          {onCancel && (
+            <button
+              onClick={onCancel}
+              className="mono"
+              style={{
+                background: 'transparent', border: '1px solid var(--border)',
+                color: 'var(--dim)', fontSize: '10px', padding: '2px 8px',
+                cursor: 'pointer', textTransform: 'uppercase',
+              }}
+            >
+              [CANCEL]
             </button>
           )}
         </div>

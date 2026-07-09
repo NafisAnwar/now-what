@@ -116,6 +116,45 @@ export async function cancelReminder(id: string): Promise<void> {
   await db.reminders.update(id, { status: 'cancelled', updatedAt: new Date().toISOString() } as never);
 }
 
+export interface ManualReminderInput {
+  title: string;
+  date: string;
+  time: string;
+  note?: string;
+}
+
+export async function createManualReminder(input: ManualReminderInput): Promise<Reminder> {
+  const title = input.title.trim();
+  if (!title || !input.date || !input.time) {
+    throw new Error('Manual reminder requires title, date, and time.');
+  }
+
+  const scheduledDate = new Date(`${input.date}T${input.time}:00`);
+  if (Number.isNaN(scheduledDate.getTime())) {
+    throw new Error('Manual reminder date/time is invalid.');
+  }
+  const scheduledAt = scheduledDate.toISOString();
+
+  const note = input.note?.trim();
+  const now = new Date().toISOString();
+  const reminder: Reminder = {
+    id: crypto.randomUUID(),
+    type: 'manual',
+    title,
+    message: note || 'Manual reminder.',
+    scheduledAt,
+    status: 'scheduled',
+    source: 'user',
+    repeat: 'none',
+    enabled: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  await db.reminders.add(reminder as never);
+  return reminder;
+}
+
 export async function clearOldReminders(): Promise<void> {
   const cutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   const old = await db.reminders

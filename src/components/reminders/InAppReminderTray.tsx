@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { useLocation } from 'wouter';
 import { db } from '../../data/db';
@@ -14,6 +14,12 @@ import { getTodayStr } from '../../utils/dateUtils';
 export default function InAppReminderTray() {
   const [, navigate] = useLocation();
   const markedRef = useRef<Set<string>>(new Set());
+  const [nowTick, setNowTick] = useState(() => Date.now());
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setNowTick(Date.now()), 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   // Respect global remindersEnabled setting
   const remindersEnabled = useLiveQuery(async () => {
@@ -28,7 +34,7 @@ export default function InAppReminderTray() {
       .where('status').anyOf(['scheduled', 'sent'])
       .toArray() as Reminder[];
     return active.filter(r => r.enabled && r.scheduledAt <= now);
-  }, []);
+  }, [nowTick]);
 
   // Mark new scheduled reminders as sent when they appear
   // (Scheduler is driven by App.tsx on mount + 5-min interval)
@@ -72,6 +78,16 @@ export default function InAppReminderTray() {
         break;
     }
   };
+
+  const canOpenReminder = (r: Reminder) => [
+    'task_due',
+    'habit_window',
+    'calendar_block',
+    'daily_review',
+    'previous_review',
+    'hydration',
+    'movement',
+  ].includes(r.type);
 
   const handleLogWater = async (r: Reminder) => {
     await db.activityLogs.add({
@@ -128,7 +144,7 @@ export default function InAppReminderTray() {
           marginBottom: '6px',
         }}
       >
-        REMINDERS — {dueReminders.length}
+        REMINDERS - {dueReminders.length}
       </div>
 
       {dueReminders.map(r => (
@@ -146,6 +162,11 @@ export default function InAppReminderTray() {
             <div className="mono" style={{ fontSize: '11px', color: 'var(--body)', lineHeight: 1.4 }}>
               {r.title}
             </div>
+            {r.message && r.message !== 'Manual reminder.' && (
+              <div style={{ fontSize: '10px', color: 'var(--secondary)', lineHeight: 1.4 }}>
+                {r.message}
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
@@ -167,19 +188,21 @@ export default function InAppReminderTray() {
                 [COMPLETE]
               </button>
             )}
-            <button
-              onClick={() => handleOpen(r)}
-              className="mono"
-              style={actionBtn}
-            >
-              [OPEN]
-            </button>
+            {canOpenReminder(r) && (
+              <button
+                onClick={() => handleOpen(r)}
+                className="mono"
+                style={actionBtn}
+              >
+                [OPEN]
+              </button>
+            )}
             <button
               onClick={() => dismissReminder(r.id)}
               className="mono"
               style={dimBtn}
             >
-              [×]
+              [x]
             </button>
           </div>
         </div>

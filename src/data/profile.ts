@@ -42,7 +42,7 @@ export const metaDb = new NowWhatMetaDB();
 
 const ACTIVE_PROFILE_KEY = 'activeProfileId';
 const LEGACY_MIGRATION_KEY_PREFIX = 'legacyMigration';
-const APP_VERSION = '0.9.0';
+const APP_VERSION = '1.1.0';
 
 export function getProfileDbName(profileId: string): string {
   return `nowwhat_profile_${profileId}`;

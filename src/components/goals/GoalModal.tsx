@@ -21,6 +21,13 @@ const inputStyle: React.CSSProperties = {
   marginBottom: '16px',
 };
 
+const helperStyle: React.CSSProperties = {
+  color: 'var(--dim)',
+  fontSize: '10px',
+  marginTop: '-10px',
+  marginBottom: '14px',
+};
+
 export default function GoalModal({ goal, onClose }: Props) {
   const [title, setTitle] = useState(goal?.title || '');
   const [category, setCategory] = useState(goal?.category || 'Personal');
@@ -208,6 +215,7 @@ export default function GoalModal({ goal, onClose }: Props) {
             onChange={e => setCategory(e.target.value)}
             style={inputStyle}
           />
+          <div className="mono" style={helperStyle}>Used for grouping and review context.</div>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -219,6 +227,7 @@ export default function GoalModal({ goal, onClose }: Props) {
               </button>
             ))}
           </div>
+          <div className="mono" style={{ ...helperStyle, marginTop: '6px' }}>Expected planning horizon for this goal.</div>
         </div>
 
         {goal && (
@@ -231,6 +240,7 @@ export default function GoalModal({ goal, onClose }: Props) {
                 </button>
               ))}
             </div>
+            <div className="mono" style={{ ...helperStyle, marginTop: '6px' }}>Only active goals boost current planning.</div>
           </div>
         )}
 

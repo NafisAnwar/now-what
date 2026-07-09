@@ -4,7 +4,10 @@ import TutorialSection from './TutorialSection';
 import { markTutorialCompleted, markTutorialPromptSeen } from '../../data/tutorial';
 
 const listStyle: React.CSSProperties = {
-  marginLeft: '18px',
+  marginLeft: '0',
+  paddingLeft: '18px',
+  listStyleType: 'disc',
+  listStylePosition: 'outside',
   display: 'flex',
   flexDirection: 'column',
   gap: '6px',
@@ -110,11 +113,8 @@ export default function TutorialPage() {
           <li>Dashboard is the command surface.</li>
           <li>The NOW_WHAT? card is the primary action area.</li>
           <li>Daily Plan shows today's focus and planned items.</li>
-          <li>Calendar Strip shows time blocks.</li>
-          <li>Lifestyle Strip shows context from logs.</li>
-          <li>Goal Strip shows active goal context.</li>
-          <li>Activity Feed shows recent actions.</li>
-          <li>Reminder Tray appears only when reminders are due.</li>
+          <li>Calendar, lifestyle, and goal strips provide current context.</li>
+          <li>Activity Feed and Reminder Tray show recent or due items.</li>
         </ul>
       </TutorialSection>
 
@@ -128,7 +128,7 @@ export default function TutorialPage() {
           <li><span style={codeStyle}>REGENERATE</span> recalculates the next action.</li>
           <li><span style={codeStyle}>ACCEPT</span> follows or starts the suggested action.</li>
           <li><span style={codeStyle}>DISMISS</span> ignores the current suggestion and asks for another valid option.</li>
-          <li>If no tasks/actions exist, it shows an empty state like <span style={codeStyle}>NO AVAILABLE TASKS</span>.</li>
+          <li>If no tasks/actions exist, it shows an empty state like <span style={codeStyle}>NO CONTEXT AVAILABLE</span>.</li>
         </ul>
       </TutorialSection>
 
@@ -179,8 +179,7 @@ export default function TutorialPage() {
           <li>Calendar blocks are read-only time context.</li>
           <li>Calendar blocks are not tasks and are not completed.</li>
           <li>Manual blocks and <span style={codeStyle}>.ics</span> import are supported.</li>
-          <li>Google/Apple calendar connection is reserved for later if placeholders exist.</li>
-          <li>A calendar block can be converted into a task when action is required.</li>
+          <li>Imported blocks can be converted into tasks when action is required.</li>
           <li>Calendar blocks help NOW_WHAT? understand available time.</li>
         </ul>
       </TutorialSection>
@@ -230,6 +229,7 @@ export default function TutorialPage() {
         <p>Reminders are quiet and user-controlled.</p>
         <ul style={listStyle}>
           <li>In-app reminders can appear for task due times, habit windows, calendar blocks, reviews, hydration, and movement.</li>
+          <li>Manual reminders can be created without creating a task.</li>
           <li>Browser notifications require explicit opt-in.</li>
           <li>Quiet hours can suppress reminders.</li>
           <li>Reminders are action-specific, not motivational.</li>
@@ -242,8 +242,7 @@ export default function TutorialPage() {
           <li>Export backup saves all app data to JSON.</li>
           <li>Import restores from a backup.</li>
           <li>Integrity checks look for broken references.</li>
-          <li>Danger Zone can clear local data, clear suggestions, or reset demo data.</li>
-          <li>Full clear makes the first-run tutorial prompt appear again.</li>
+          <li>Danger Zone can clear local data, clear suggestions, reset demo data, and make the tutorial prompt appear again.</li>
         </ul>
       </TutorialSection>
 

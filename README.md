@@ -2,7 +2,7 @@
 
 A local-first personal daily command system. No account, no server, no cloud — everything lives in your browser's IndexedDB via [Dexie](https://dexie.org/).
 
-**v0.9.0** — Tasks · Habits · Goals · Daily Plan · Calendar · Review · Reminders · Timeline · PWA-ready
+**v1.1** - Tasks · Habits · Goals · Daily Plan · Calendar · Review · Reminders · Timeline · PWA-ready
 
 ---
 

@@ -250,6 +250,7 @@ export interface Reminder {
     | 'previous_review'
     | 'hydration'
     | 'movement'
+    | 'manual'
     | 'custom';
   title: string;
   message: string;

@@ -13,6 +13,7 @@ export default function HabitModal({ habit, onClose }: Props) {
   const [category, setCategory] = useState(habit?.category || 'Health');
   const [goalId, setGoalId] = useState(habit?.goalId || '');
   const activeGoals = useLiveQuery(() => db.goals.where('status').equals('active').toArray(), []) || [];
+  const goalOptions = Array.from(new Map(activeGoals.map(goal => [goal.id, goal])).values());
   const [frequency, setFrequency] = useState<'daily'|'weekly'|'custom'>(habit?.frequency || 'daily');
   const [completionType, setCompletionType] = useState<'boolean'|'quantity'|'time'|'count'>(habit?.completionType || 'boolean');
   const [targetValue, setTargetValue] = useState(habit?.targetValue?.toString() || '');
@@ -85,6 +86,29 @@ export default function HabitModal({ habit, onClose }: Props) {
     onClose();
   };
 
+  const helperStyle: React.CSSProperties = {
+    color: 'var(--dim)',
+    fontSize: '10px',
+    marginTop: '6px',
+  };
+
+  const targetValueLabel =
+    completionType === 'time' ? 'TARGET MINUTES' :
+    completionType === 'count' ? 'TARGET COUNT' :
+    'TARGET VALUE';
+  const targetUnitLabel =
+    completionType === 'time' ? 'TIME UNIT' :
+    completionType === 'count' ? 'COUNT LABEL' :
+    'TARGET UNIT';
+  const targetUnitPlaceholder =
+    completionType === 'time' ? 'min' :
+    completionType === 'count' ? 'times / reps / pages' :
+    'ml / pages';
+  const targetHelper =
+    completionType === 'time' ? 'Track minutes spent.' :
+    completionType === 'count' ? 'Track repeated counts.' :
+    'Track a measured quantity.';
+
   return (
     <div style={{
       position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', zIndex: 100
@@ -110,6 +134,7 @@ export default function HabitModal({ habit, onClose }: Props) {
           <div className="label" style={{ marginBottom: '6px' }}>CATEGORY</div>
           <input value={category} onChange={e => setCategory(e.target.value)}
                  style={{ background: 'var(--surface2)', color: 'var(--primary)', border: '1px solid var(--border-hi)', padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0 }} />
+          <div className="mono" style={helperStyle}>Used for grouping and review context.</div>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -124,6 +149,7 @@ export default function HabitModal({ habit, onClose }: Props) {
               }}>{f}</button>
             ))}
           </div>
+          <div className="mono" style={helperStyle}>How often this habit is expected.</div>
         </div>
 
         <div style={{ marginBottom: '16px' }}>
@@ -138,19 +164,22 @@ export default function HabitModal({ habit, onClose }: Props) {
               }}>{t}</button>
             ))}
           </div>
+          <div className="mono" style={helperStyle}>Controls how completion is recorded.</div>
         </div>
 
         {completionType !== 'boolean' && (
           <div style={{ display: 'flex', gap: '16px', marginBottom: '16px' }}>
             <div style={{ flex: 1 }}>
-              <div className="label" style={{ marginBottom: '6px' }}>TARGET VALUE</div>
+              <div className="label" style={{ marginBottom: '6px' }}>{targetValueLabel}</div>
               <input type="number" value={targetValue} onChange={e => setTargetValue(e.target.value)}
                      style={{ background: 'var(--surface2)', color: 'var(--primary)', border: '1px solid var(--border-hi)', padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0 }} />
+              <div className="mono" style={helperStyle}>{targetHelper}</div>
             </div>
             <div style={{ flex: 1 }}>
-              <div className="label" style={{ marginBottom: '6px' }}>TARGET UNIT</div>
-              <input value={targetUnit} onChange={e => setTargetUnit(e.target.value)} placeholder="ml / pages / min"
+              <div className="label" style={{ marginBottom: '6px' }}>{targetUnitLabel}</div>
+              <input value={targetUnit} onChange={e => setTargetUnit(e.target.value)} placeholder={targetUnitPlaceholder}
                      style={{ background: 'var(--surface2)', color: 'var(--primary)', border: '1px solid var(--border-hi)', padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0 }} />
+              <div className="mono" style={helperStyle}>Optional display unit.</div>
             </div>
           </div>
         )}
@@ -189,9 +218,11 @@ export default function HabitModal({ habit, onClose }: Props) {
           <select value={goalId} onChange={e => setGoalId(e.target.value)}
                   style={{ background: 'var(--surface2)', color: 'var(--primary)', border: '1px solid var(--border-hi)',
                            padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0 }}>
-            <option value="">NONE</option>
-            {activeGoals.map(g => <option key={g.id} value={g.id}>{g.title.toUpperCase()}</option>)}
+            {goalOptions.length === 0 && <option value="">NO GOALS AVAILABLE</option>}
+            {goalOptions.length > 0 && <option value="">NONE</option>}
+            {goalOptions.map(g => <option key={g.id} value={g.id}>{g.title.toUpperCase()}</option>)}
           </select>
+          <div className="mono" style={helperStyle}>Optional link to an active goal.</div>
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>

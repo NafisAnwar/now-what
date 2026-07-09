@@ -14,6 +14,7 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
   const [repeat, setRepeat] = useState('none');
   const [goalId, setGoalId] = useState('');
   const activeGoals = useLiveQuery(() => db.goals.where('status').equals('active').toArray(), []) || [];
+  const goalOptions = Array.from(new Map(activeGoals.map(goal => [goal.id, goal])).values());
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,6 +56,12 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
     marginBottom: '16px',
     outline: 'none'
   };
+  const helperStyle: React.CSSProperties = {
+    color: 'var(--dim)',
+    fontSize: '10px',
+    marginTop: '-10px',
+    marginBottom: '14px',
+  };
 
   return (
     <Modal onClose={onClose}>
@@ -76,6 +83,7 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
+            <div className="mono" style={helperStyle}>Used for grouping and NOW_WHAT? context.</div>
           </div>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>PRIORITY</div>
@@ -85,6 +93,7 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
               <option value="high">HIGH</option>
               <option value="critical">CRITICAL</option>
             </select>
+            <div className="mono" style={helperStyle}>Critical overdue tasks stay highest priority.</div>
           </div>
         </div>
 
@@ -96,6 +105,7 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
               <option value="medium">MEDIUM</option>
               <option value="high">HIGH</option>
             </select>
+            <div className="mono" style={helperStyle}>Estimated effort, not mood.</div>
           </div>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>EST. MINUTES</div>
@@ -126,16 +136,19 @@ export default function TaskModal({ onClose }: { onClose: () => void }) {
               <option value="daily">DAILY</option>
               <option value="weekly">WEEKLY</option>
             </select>
+            <div className="mono" style={helperStyle}>Repeats create future task context.</div>
           </div>
         </div>
 
         <div className="label" style={{ marginBottom: '8px' }}>GOAL</div>
         <select style={inputStyle} value={goalId} onChange={e => setGoalId(e.target.value)}>
-          <option value="">NONE</option>
-          {activeGoals.map(g => (
+          {goalOptions.length === 0 && <option value="">NO GOALS AVAILABLE</option>}
+          {goalOptions.length > 0 && <option value="">NONE</option>}
+          {goalOptions.map(g => (
             <option key={g.id} value={g.id}>{g.title.toUpperCase()}</option>
           ))}
         </select>
+        <div className="mono" style={helperStyle}>Optional link to an active goal.</div>
 
         <div className="label" style={{ marginBottom: '8px' }}>NOTES</div>
         <textarea 
