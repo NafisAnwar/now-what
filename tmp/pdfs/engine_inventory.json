@@ -1,0 +1,1904 @@
+﻿{
+  "microActions": [
+    {
+      "id": "setup_add_task_today",
+      "title": "ADD ONE TASK",
+      "body": "Add one concrete task for today.",
+      "category": "setup",
+      "actionType": "micro_action",
+      "actionIntent": "add_task",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_tasks"
+      ],
+      "cooldownHours": 1
+    },
+    {
+      "id": "setup_add_habit",
+      "title": "ADD ONE HABIT",
+      "body": "Add one repeated action to track.",
+      "category": "setup",
+      "actionType": "micro_action",
+      "actionIntent": "add_habit",
+      "needsTags": [
+        "habit_consistency",
+        "health_energy"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_habits"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "setup_add_calendar_block",
+      "title": "ADD CALENDAR BLOCK",
+      "body": "Add the next fixed commitment.",
+      "category": "setup",
+      "actionType": "micro_action",
+      "actionIntent": "add_calendar_block",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_calendar_blocks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "setup_profile",
+      "title": "CONFIGURE PROFILE",
+      "body": "Set recommendation priorities and State Check preferences.",
+      "category": "setup",
+      "actionType": "micro_action",
+      "actionIntent": "open_needs_profile",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "needs_profile_incomplete"
+      ],
+      "cooldownHours": 6
+    },
+    {
+      "id": "setup_capture_note",
+      "title": "CAPTURE ONE NOTE",
+      "body": "Record one item before it is lost.",
+      "category": "setup",
+      "actionType": "micro_action",
+      "actionIntent": "open_quick_log",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "planning_set_focus",
+      "title": "SET PRIMARY FOCUS",
+      "body": "Set one primary focus for today.",
+      "category": "planning",
+      "actionType": "micro_action",
+      "actionIntent": "plan_day",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "planning_next_30",
+      "title": "PLAN NEXT 30 MINUTES",
+      "body": "Choose one bounded action for the next 30 minutes.",
+      "category": "planning",
+      "actionType": "micro_action",
+      "actionIntent": "plan_day",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "planning_review_pending",
+      "title": "REVIEW PENDING TASKS",
+      "body": "Scan pending tasks and identify the next concrete item.",
+      "category": "planning",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "planning_tomorrow_first",
+      "title": "PLAN TOMORROW FIRST",
+      "body": "Set tomorrow's first task.",
+      "category": "planning",
+      "actionType": "micro_action",
+      "actionIntent": "plan_day",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "activity_exists"
+      ],
+      "cooldownHours": 6
+    },
+    {
+      "id": "planning_upcoming_calendar",
+      "title": "CHECK UPCOMING BLOCKS",
+      "body": "Review the next calendar commitments.",
+      "category": "planning",
+      "actionType": "micro_action",
+      "actionIntent": "open_calendar",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "calendar_available"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "planning_carry_over",
+      "title": "REVIEW UNFINISHED WORK",
+      "body": "Choose one unfinished task to carry forward.",
+      "category": "planning",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "neutral",
+        "stressed",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 4
+    },
+    {
+      "id": "low_start_smallest",
+      "title": "START SMALLEST PLANNED TASK",
+      "body": "Open the task list and start the smallest planned item.",
+      "category": "low_energy",
+      "actionType": "micro_action",
+      "actionIntent": "open_tasks",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "planned_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "low_admin_item",
+      "title": "OPEN LOW-EFFORT ADMIN",
+      "body": "Review pending tasks for one low-effort admin item.",
+      "category": "low_energy",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "school_work",
+        "life_admin"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "low_break_next_step",
+      "title": "DEFINE ONE NEXT STEP",
+      "body": "Turn one large task into a concrete next step.",
+      "category": "low_energy",
+      "actionType": "micro_action",
+      "actionIntent": "open_tasks",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "low_choose_short",
+      "title": "CHOOSE A SHORT TASK",
+      "body": "Review pending work and choose a task under 30 minutes.",
+      "category": "low_energy",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "school_work",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "low_review_list",
+      "title": "SCAN TASK LIST",
+      "body": "Review tasks without starting a long work block.",
+      "category": "low_energy",
+      "actionType": "micro_action",
+      "actionIntent": "open_tasks",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "low_add_admin",
+      "title": "ADD LIFE-ADMIN TASK",
+      "body": "Capture one concrete life-admin item.",
+      "category": "low_energy",
+      "actionType": "micro_action",
+      "actionIntent": "add_task",
+      "needsTags": [
+        "life_admin"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "no_recent_task"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "low_maintenance",
+      "title": "CHOOSE MAINTENANCE ITEM",
+      "body": "Open tasks and select one small maintenance action.",
+      "category": "low_energy",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "life_admin",
+        "health_energy"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "recovery_short_rest",
+      "title": "TAKE SHORT REST",
+      "body": "Open Quick Log and record a short intentional rest.",
+      "category": "recovery",
+      "actionType": "micro_action",
+      "actionIntent": "log_rest",
+      "needsTags": [
+        "health_energy",
+        "life_admin",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "no_urgent_work"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "recovery_add_block",
+      "title": "ADD RECOVERY BLOCK",
+      "body": "Add a bounded recovery block to the calendar.",
+      "category": "recovery",
+      "actionType": "micro_action",
+      "actionIntent": "add_calendar_block",
+      "needsTags": [
+        "health_energy",
+        "life_admin"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "no_urgent_work"
+      ],
+      "cooldownHours": 4
+    },
+    {
+      "id": "recovery_log_state",
+      "title": "LOG CURRENT STATE",
+      "body": "Record current state and Energy Level.",
+      "category": "recovery",
+      "actionType": "micro_action",
+      "actionIntent": "log_state",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "recovery_log_rest",
+      "title": "LOG REST",
+      "body": "Open Quick Log and record rest time.",
+      "category": "recovery",
+      "actionType": "micro_action",
+      "actionIntent": "log_rest",
+      "needsTags": [
+        "health_energy",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "recovery_choose_mode",
+      "title": "REVIEW WORK OR RECOVERY",
+      "body": "Review pending work before choosing work or recovery.",
+      "category": "recovery",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "health_energy",
+        "school_work",
+        "life_admin"
+      ],
+      "stateTags": [
+        "low",
+        "stressed",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "movement_short_reset",
+      "title": "SHORT MOVEMENT RESET",
+      "body": "Open Quick Log and record a short movement reset.",
+      "category": "movement",
+      "actionType": "micro_action",
+      "actionIntent": "log_movement",
+      "needsTags": [
+        "habit_consistency",
+        "health_energy"
+      ],
+      "stateTags": [
+        "restless",
+        "low",
+        "stressed"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_urgent_work"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "movement_log",
+      "title": "LOG MOVEMENT",
+      "body": "Record completed movement.",
+      "category": "movement",
+      "actionType": "micro_action",
+      "actionIntent": "log_movement",
+      "needsTags": [
+        "habit_consistency",
+        "health_energy"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "movement_add_block",
+      "title": "ADD MOVEMENT BLOCK",
+      "body": "Add a short movement block to the calendar.",
+      "category": "movement",
+      "actionType": "micro_action",
+      "actionIntent": "add_calendar_block",
+      "needsTags": [
+        "health_energy",
+        "habit_consistency",
+        "life_admin"
+      ],
+      "stateTags": [
+        "neutral",
+        "restless"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_urgent_work"
+      ],
+      "cooldownHours": 4
+    },
+    {
+      "id": "movement_active_reset",
+      "title": "TAKE ACTIVE RESET",
+      "body": "Use a brief active reset before the next work block.",
+      "category": "movement",
+      "actionType": "micro_action",
+      "actionIntent": "log_movement",
+      "needsTags": [
+        "health_energy",
+        "habit_consistency",
+        "school_work"
+      ],
+      "stateTags": [
+        "restless"
+      ],
+      "capacityTags": [
+        "normal",
+        "light"
+      ],
+      "energyBandTags": [
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_urgent_work"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "admin_clear_small",
+      "title": "CLEAR SMALL ADMIN ITEM",
+      "body": "Open tasks and clear one small admin item.",
+      "category": "admin",
+      "actionType": "micro_action",
+      "actionIntent": "open_tasks",
+      "needsTags": [
+        "life_admin",
+        "school_work"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "admin_review_reminders",
+      "title": "REVIEW REMINDER-BOUND WORK",
+      "body": "Review tasks that need a time or reminder.",
+      "category": "admin",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "life_admin",
+        "school_work",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "admin_calendar_to_task",
+      "title": "REVIEW CALENDAR CONVERSION",
+      "body": "Open calendar blocks and convert one actionable block if needed.",
+      "category": "admin",
+      "actionType": "micro_action",
+      "actionIntent": "open_calendar",
+      "needsTags": [
+        "life_admin",
+        "school_work"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "calendar_available"
+      ],
+      "cooldownHours": 4
+    },
+    {
+      "id": "admin_capture_inbox",
+      "title": "CAPTURE ADMIN TASK",
+      "body": "Add one concrete admin task.",
+      "category": "admin",
+      "actionType": "micro_action",
+      "actionIntent": "add_task",
+      "needsTags": [
+        "life_admin"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_recent_task"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "admin_review_profile",
+      "title": "REVIEW PROFILE SETTINGS",
+      "body": "Check recommendation priorities and State Check timing.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "open_needs_profile",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 12
+    },
+    {
+      "id": "focus_10",
+      "title": "START 10-MINUTE FOCUS",
+      "body": "Open Quick Log and begin a 10-minute focus block.",
+      "category": "focus",
+      "actionType": "micro_action",
+      "actionIntent": "open_quick_log",
+      "needsTags": [
+        "school_work",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "restless"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_urgent_block"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "focus_25",
+      "title": "START 25-MINUTE FOCUS",
+      "body": "Open Quick Log and begin a 25-minute focus block.",
+      "category": "focus",
+      "actionType": "micro_action",
+      "actionIntent": "open_quick_log",
+      "needsTags": [
+        "school_work",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "restless"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light"
+      ],
+      "energyBandTags": [
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_urgent_block"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "focus_deep_priority",
+      "title": "OPEN HIGH-VALUE WORK",
+      "body": "Review high-priority work for a deeper focus block.",
+      "category": "focus",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "school_work",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal"
+      ],
+      "energyBandTags": [
+        "high"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "focus_deadline",
+      "title": "OPEN CLOSEST DEADLINE",
+      "body": "Review the closest-deadline task.",
+      "category": "focus",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "school_work",
+        "life_admin"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "focus_resume_planned",
+      "title": "RESUME PLANNED WORK",
+      "body": "Open the planned task list.",
+      "category": "focus",
+      "actionType": "micro_action",
+      "actionIntent": "open_tasks",
+      "needsTags": [
+        "school_work",
+        "creative_projects",
+        "life_admin"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "restless"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light"
+      ],
+      "energyBandTags": [
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "planned_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "focus_log_session",
+      "title": "LOG FOCUS SESSION",
+      "body": "Record a completed focus session.",
+      "category": "focus",
+      "actionType": "micro_action",
+      "actionIntent": "open_quick_log",
+      "needsTags": [
+        "school_work",
+        "creative_projects",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "always"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "creative_add_task",
+      "title": "ADD CREATIVE TASK",
+      "body": "Capture one concrete creative project task.",
+      "category": "creative",
+      "actionType": "micro_action",
+      "actionIntent": "add_task",
+      "needsTags": [
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_recent_task"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "creative_start_draft",
+      "title": "OPEN CREATIVE DRAFT",
+      "body": "Review creative tasks and start one draft.",
+      "category": "creative",
+      "actionType": "micro_action",
+      "actionIntent": "open_tasks",
+      "needsTags": [
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "restless"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light"
+      ],
+      "energyBandTags": [
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "pending_tasks"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "creative_review_goal",
+      "title": "REVIEW PROJECT GOAL",
+      "body": "Review tasks linked to an active project goal.",
+      "category": "creative",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "creative_projects",
+        "school_work"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "goals_available"
+      ],
+      "cooldownHours": 4
+    },
+    {
+      "id": "creative_link_goal",
+      "title": "LINK WORK TO GOAL",
+      "body": "Review tasks and connect one item to an active goal.",
+      "category": "creative",
+      "actionType": "micro_action",
+      "actionIntent": "open_tasks",
+      "needsTags": [
+        "creative_projects",
+        "school_work",
+        "life_admin"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "goals_available",
+        "pending_tasks"
+      ],
+      "cooldownHours": 6
+    },
+    {
+      "id": "review_today_activity",
+      "title": "REVIEW TODAY ACTIVITY",
+      "body": "Open Daily Review for today's recorded activity.",
+      "category": "review",
+      "actionType": "micro_action",
+      "actionIntent": "open_review",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "neutral",
+        "stressed",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "review_available"
+      ],
+      "cooldownHours": 4
+    },
+    {
+      "id": "review_complete_daily",
+      "title": "COMPLETE DAILY REVIEW",
+      "body": "Open the available Daily Review.",
+      "category": "review",
+      "actionType": "micro_action",
+      "actionIntent": "open_review",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "review_available"
+      ],
+      "cooldownHours": 6
+    },
+    {
+      "id": "review_weekly_patterns",
+      "title": "REVIEW WEEKLY PATTERNS",
+      "body": "Open Review and inspect weekly activity patterns.",
+      "category": "review",
+      "actionType": "micro_action",
+      "actionIntent": "open_review",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "activity_exists"
+      ],
+      "cooldownHours": 12
+    },
+    {
+      "id": "review_goal_progress",
+      "title": "REVIEW GOAL-LINKED WORK",
+      "body": "Review tasks connected to active goals.",
+      "category": "review",
+      "actionType": "micro_action",
+      "actionIntent": "review_tasks",
+      "needsTags": [
+        "school_work",
+        "creative_projects",
+        "life_admin"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "goals_available"
+      ],
+      "cooldownHours": 6
+    },
+    {
+      "id": "review_focus_balance",
+      "title": "REVIEW FOCUS AND REST",
+      "body": "Open Review and inspect focus, rest, and distraction logs.",
+      "category": "review",
+      "actionType": "micro_action",
+      "actionIntent": "open_review",
+      "needsTags": [
+        "health_energy",
+        "school_work",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "neutral",
+        "low",
+        "stressed",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "activity_exists"
+      ],
+      "cooldownHours": 8
+    },
+    {
+      "id": "maintenance_next_commitment",
+      "title": "CHECK NEXT COMMITMENT",
+      "body": "Open the calendar and check the next fixed commitment.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "open_calendar",
+      "needsTags": [
+        "life_admin",
+        "school_work",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "calendar_available"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "maintenance_habit_window",
+      "title": "CHECK ACTIVE HABIT WINDOW",
+      "body": "Open habits and review the active window.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "open_habits",
+      "needsTags": [
+        "habit_consistency",
+        "health_energy"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "active_habit_window"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "maintenance_log_water",
+      "title": "LOG WATER",
+      "body": "Open Quick Log and record water.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "log_water",
+      "needsTags": [
+        "health_energy",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "user_context"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "maintenance_log_meal",
+      "title": "LOG MEAL",
+      "body": "Open Quick Log and record a meal.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "open_quick_log",
+      "needsTags": [
+        "health_energy",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "user_context"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "maintenance_log_energy",
+      "title": "LOG ENERGY LEVEL",
+      "body": "Open Quick Log and record current Energy Level.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "open_quick_log",
+      "needsTags": [
+        "school_work",
+        "habit_consistency",
+        "health_energy",
+        "life_admin",
+        "creative_projects"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "user_context"
+      ],
+      "cooldownHours": 2
+    },
+    {
+      "id": "maintenance_log_distraction",
+      "title": "LOG DISTRACTION",
+      "body": "Open Quick Log and record distraction time.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "open_quick_log",
+      "needsTags": [
+        "school_work",
+        "creative_projects",
+        "health_energy"
+      ],
+      "stateTags": [
+        "neutral",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "user_context"
+      ],
+      "cooldownHours": 3
+    },
+    {
+      "id": "maintenance_health_habit",
+      "title": "ADD HEALTH HABIT",
+      "body": "Add one health-maintenance habit.",
+      "category": "maintenance",
+      "actionType": "micro_action",
+      "actionIntent": "add_habit",
+      "needsTags": [
+        "health_energy",
+        "habit_consistency"
+      ],
+      "stateTags": [
+        "clear",
+        "neutral",
+        "low",
+        "stressed",
+        "restless",
+        "overloaded"
+      ],
+      "capacityTags": [
+        "deep",
+        "normal",
+        "light",
+        "recovery"
+      ],
+      "energyBandTags": [
+        "low",
+        "neutral",
+        "high"
+      ],
+      "eligibleWhen": [
+        "no_habits"
+      ],
+      "cooldownHours": 6
+    }
+  ],
+  "needsCoverage": {
+    "school_work": 38,
+    "habit_consistency": 24,
+    "health_energy": 26,
+    "life_admin": 36,
+    "creative_projects": 31
+  },
+  "categories": {
+    "standard": [
+      "School",
+      "Work",
+      "Health",
+      "Admin",
+      "Personal",
+      "Creative",
+      "Social",
+      "Maintenance"
+    ],
+    "groups": [
+      {
+        "category": "School",
+        "normalized": "school",
+        "group": "school_work",
+        "need": "school_work"
+      },
+      {
+        "category": "Work",
+        "normalized": "work",
+        "group": "school_work",
+        "need": "school_work"
+      },
+      {
+        "category": "Health",
+        "normalized": "health",
+        "group": "health_energy",
+        "need": "health_energy"
+      },
+      {
+        "category": "Admin",
+        "normalized": "admin",
+        "group": "life_admin",
+        "need": "life_admin"
+      },
+      {
+        "category": "Personal",
+        "normalized": "personal",
+        "group": "life_admin",
+        "need": "life_admin"
+      },
+      {
+        "category": "Creative",
+        "normalized": "creative",
+        "group": "creative_projects",
+        "need": "creative_projects"
+      },
+      {
+        "category": "Social",
+        "normalized": "social",
+        "group": "social",
+        "need": null
+      },
+      {
+        "category": "Maintenance",
+        "normalized": "maintenance",
+        "group": "life_admin",
+        "need": "life_admin"
+      }
+    ]
+  }
+}
