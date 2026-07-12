@@ -19,8 +19,15 @@ export default function LifestyleStrip() {
   const restMin = logs.filter(l => l.type === 'rest').reduce((acc, l) => acc + (l.durationMinutes || 0), 0);
   const distractionMin = logs.filter(l => l.type === 'distraction').reduce((acc, l) => acc + (l.durationMinutes || 0), 0);
   
-  const energyLogs = logs.filter(l => l.type === 'energy').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const energyVal = energyLogs.length > 0 ? `${energyLogs[0].quantity}/5` : '—';
+  const energyLogs = logs
+    .filter(l => l.type === 'energy' || l.type === 'state_check')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const latestEnergy = energyLogs[0];
+  const energyLevel = latestEnergy?.type === 'state_check' ? latestEnergy.energyLevel : latestEnergy?.quantity;
+  const energyVal = typeof energyLevel === 'number' ? `${energyLevel}/5` : '—';
+
+  const stateLogs = logs.filter(l => l.type === 'state_check').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const stateVal = stateLogs[0]?.state?.toUpperCase() ?? '—';
   
   const moodLogs = logs.filter(l => l.type === 'mood').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const moodVal = moodLogs.length > 0 ? `${moodLogs[0].quantity}/5` : '—';
@@ -30,6 +37,7 @@ export default function LifestyleStrip() {
     { label: 'FOCUS', value: focusMin ? `${focusMin}m` : '0m' },
     { label: 'MEALS', value: `${mealsCount}` },
     { label: 'MOVEMENT', value: movementMin ? `${movementMin}m` : '0m' },
+    { label: 'STATE', value: stateVal },
     { label: 'ENERGY', value: energyVal },
     { label: 'MOOD', value: moodVal },
     { label: 'REST', value: restMin ? `${restMin}m` : '0m' },

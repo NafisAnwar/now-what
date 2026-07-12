@@ -12,6 +12,8 @@ import DataPage from './components/data/DataPage';
 import RemindersPage from './components/reminders/RemindersPage';
 import TutorialPage from './components/tutorial/TutorialPage';
 import TutorialPrompt from './components/tutorial/TutorialPrompt';
+import NeedsOnboardingPrompt from './components/needs/NeedsOnboardingPrompt';
+import StateCheckPrompt from './components/needs/StateCheckPrompt';
 import { generateSystemRemindersForToday } from './data/reminders';
 import { initializeProfileSession } from './data/profile';
 import TaskModal from './components/tasks/TaskModal';
@@ -227,7 +229,9 @@ export default function App() {
           <Router />
         </AppShell>
         <TutorialPrompt />
+        <NeedsOnboardingPrompt />
       </WouterRouter>
+      <StateCheckPrompt />
       {isTaskModalOpen && <TaskModal onClose={() => setIsTaskModalOpen(false)} />}
       {isHabitModalOpen && <HabitModal onClose={() => setIsHabitModalOpen(false)} />}
       {isGoalModalOpen && <GoalModal onClose={() => setIsGoalModalOpen(false)} />}

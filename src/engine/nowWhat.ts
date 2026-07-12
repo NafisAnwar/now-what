@@ -1,7 +1,7 @@
 import { db } from '../data/db';
 import { hasReviewableActivity, isDailyReviewIncomplete } from '../data/review';
 import { getCalendarBlocksForDate } from '../data/calendar';
-import type { Task, Suggestion, SuggestionActionType, Habit, Goal, DailyPlan, CalendarBlock, DailyReview } from '../types';
+import type { Task, Suggestion, SuggestionActionType, Habit, Goal, DailyPlan, CalendarBlock, DailyReview, StateType } from '../types';
 import { isLocalDate, localDateStr } from '../utils/dateUtils';
 
 export type MoodState = 'CLEAR' | 'NEUTRAL' | 'LOW' | 'STRESSED' | 'RESTLESS' | 'OVERLOADED';
@@ -113,6 +113,18 @@ export function normalizeEnergyLevel(value: number | null): EnergySignal | null 
   if (value <= 2) return 'LOW';
   if (value >= 4) return 'HIGH';
   return 'MEDIUM';
+}
+
+export function normalizeLoggedState(value: StateType | undefined): MoodState | null {
+  switch (value) {
+    case 'clear': return 'CLEAR';
+    case 'neutral': return 'NEUTRAL';
+    case 'low': return 'LOW';
+    case 'stressed': return 'STRESSED';
+    case 'restless': return 'RESTLESS';
+    case 'overloaded': return 'OVERLOADED';
+    default: return null;
+  }
 }
 
 export function normalizeMoodState(input: StateSignalInput): MoodState {
@@ -434,13 +446,16 @@ export async function getCurrentContext(): Promise<Context> {
   const lastEnergyValue = latestEnergyLog
     ? (latestEnergyLog.type === 'state_check' ? latestEnergyLog.energyLevel ?? null : latestEnergyLog.quantity ?? null)
     : null;
+  const latestStateCheck = [...allEnergyLogs]
+    .reverse()
+    .find(log => log.type === 'state_check' && normalizeLoggedState(log.state) !== null);
 
   const allFocusLogs = await db.activityLogs.where('type').equals('focus').toArray();
   allFocusLogs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
   const lastFocusEndAt = allFocusLogs.length > 0 ? allFocusLogs[allFocusLogs.length - 1].createdAt : null;
   const minutesSinceLastFocus = lastFocusEndAt ? (now.getTime() - new Date(lastFocusEndAt).getTime()) / 60000 : Infinity;
   const latestEnergyLevel = normalizeEnergyLevel(lastEnergyValue);
-  const latestMoodState = normalizeMoodState({
+  const inferredMoodState = normalizeMoodState({
     moodValue: lastMoodValue,
     energyValue: lastEnergyValue,
     focusMinutesToday,
@@ -448,6 +463,13 @@ export async function getCurrentContext(): Promise<Context> {
     distractionMinutesToday,
     minutesSinceLastFocus,
   });
+  const loggedState = normalizeLoggedState(latestStateCheck?.state);
+  const latestMoodState = loggedState && (
+    moodLogs.length === 0 ||
+    (latestStateCheck?.createdAt ?? '') >= moodLogs[0].createdAt
+  )
+    ? loggedState
+    : inferredMoodState;
   const currentFocusCapacity = deriveFocusCapacity({
     moodValue: lastMoodValue,
     energyValue: lastEnergyValue,

@@ -1,17 +1,20 @@
 import { db, type NowWhatDB } from './db';
 import type {
+  ActivityLog,
   LowEnergyPreference,
   NeedType,
   NeedsProfile,
   PriorityMode,
   Settings,
   StateType,
+  UserEnergyLevel,
 } from '../types';
 
 export const NEEDS_PROFILE_ID = 'default';
 export const DEFAULT_CHECK_IN_INTERVAL_HOURS = 6;
 export const DEFAULT_QUIET_HOURS_START = '23:00';
 export const DEFAULT_QUIET_HOURS_END = '08:00';
+const HOUR_MS = 60 * 60 * 1000;
 
 export const VALID_NEED_TYPES: readonly NeedType[] = [
   'school_work',
@@ -48,8 +51,56 @@ export const VALID_STATE_TYPES: readonly StateType[] = [
 
 export type NeedsProfilePatch = Partial<Omit<NeedsProfile, 'id' | 'createdAt' | 'updatedAt'>>;
 
+export interface SaveStateCheckResult {
+  log: ActivityLog;
+  profile: NeedsProfile;
+}
+
 export function isValidQuietHour(value: unknown): value is string {
   return typeof value === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function timeToMinutes(value: string): number {
+  const [hours, minutes] = value.split(':').map(Number);
+  return hours * 60 + minutes;
+}
+
+export function isWithinNeedsQuietHours(date: Date, quietStart: string, quietEnd: string): boolean {
+  const current = date.getHours() * 60 + date.getMinutes();
+  const start = timeToMinutes(quietStart);
+  const end = timeToMinutes(quietEnd);
+
+  if (start === end) return false;
+  if (start > end) return current >= start || current < end;
+  return current >= start && current < end;
+}
+
+export function getQuietHoursEnd(date: Date, quietEnd: string): Date {
+  const [hours, minutes] = quietEnd.split(':').map(Number);
+  const end = new Date(date);
+  end.setHours(hours, minutes, 0, 0);
+  if (end.getTime() <= date.getTime()) end.setDate(end.getDate() + 1);
+  return end;
+}
+
+function moveOutsideQuietHours(date: Date, profile: NeedsProfile): Date {
+  return isWithinNeedsQuietHours(date, profile.quietHoursStart, profile.quietHoursEnd)
+    ? getQuietHoursEnd(date, profile.quietHoursEnd)
+    : date;
+}
+
+function calculateNextStateCheck(
+  profile: NeedsProfile,
+  fromDate: Date,
+  dismissCount = 0
+): Date {
+  const intervalHours = dismissCount >= 2
+    ? Math.max(12, profile.checkInIntervalHours * 2)
+    : profile.checkInIntervalHours;
+  return moveOutsideQuietHours(
+    new Date(fromDate.getTime() + intervalHours * HOUR_MS),
+    profile
+  );
 }
 
 function activeDatabase(database?: NowWhatDB): NowWhatDB {
@@ -145,11 +196,78 @@ export async function scheduleNextStateCheck(
   database?: NowWhatDB
 ): Promise<NeedsProfile> {
   const profile = await getOrCreateNeedsProfile(database);
-  const nextStateCheckAt = new Date(
-    fromDate.getTime() + profile.checkInIntervalHours * 60 * 60 * 1000
-  ).toISOString();
+  if (!profile.checkInEnabled) {
+    return updateNeedsProfile({ nextStateCheckAt: undefined }, database);
+  }
+
+  const nextStateCheckAt = calculateNextStateCheck(profile, fromDate).toISOString();
 
   return updateNeedsProfile({ nextStateCheckAt }, database);
+}
+
+export async function deferStateCheckUntil(
+  date: Date,
+  database?: NowWhatDB
+): Promise<NeedsProfile> {
+  const profile = await getOrCreateNeedsProfile(database);
+  const nextStateCheckAt = moveOutsideQuietHours(date, profile).toISOString();
+  return updateNeedsProfile({ nextStateCheckAt }, database);
+}
+
+export async function deferStateCheckForQuietHours(
+  fromDate: Date = new Date(),
+  database?: NowWhatDB
+): Promise<NeedsProfile> {
+  const profile = await getOrCreateNeedsProfile(database);
+  return updateNeedsProfile({
+    nextStateCheckAt: getQuietHoursEnd(fromDate, profile.quietHoursEnd).toISOString(),
+  }, database);
+}
+
+export async function saveStateCheck(
+  state: StateType,
+  energyLevel: UserEnergyLevel,
+  database?: NowWhatDB
+): Promise<SaveStateCheckResult> {
+  const activeDb = activeDatabase(database);
+  const current = await getOrCreateNeedsProfile(activeDb);
+  const now = new Date();
+  const nowIso = now.toISOString();
+  const nextStateCheckAt = calculateNextStateCheck(current, now).toISOString();
+  const log: ActivityLog = {
+    id: crypto.randomUUID(),
+    type: 'state_check',
+    label: `State check - ${state.toUpperCase()} - energy ${energyLevel}/5`,
+    state,
+    energyLevel,
+    createdAt: nowIso,
+  };
+  const profile: NeedsProfile = {
+    ...current,
+    lastStateCheckAt: nowIso,
+    nextStateCheckAt,
+    stateCheckDismissCount: 0,
+    updatedAt: nowIso,
+  };
+
+  await activeDb.transaction('rw', activeDb.activityLogs, activeDb.needsProfiles, async () => {
+    await activeDb.activityLogs.add(log);
+    await activeDb.needsProfiles.put(profile as never);
+  });
+
+  return { log, profile };
+}
+
+export async function dismissStateCheck(
+  fromDate: Date = new Date(),
+  database?: NowWhatDB
+): Promise<NeedsProfile> {
+  const profile = await getOrCreateNeedsProfile(database);
+  const dismissCount = (profile.stateCheckDismissCount ?? 0) + 1;
+  return updateNeedsProfile({
+    stateCheckDismissCount: dismissCount,
+    nextStateCheckAt: calculateNextStateCheck(profile, fromDate, dismissCount).toISOString(),
+  }, database);
 }
 
 export async function clearNeedsProfile(database?: NowWhatDB): Promise<void> {

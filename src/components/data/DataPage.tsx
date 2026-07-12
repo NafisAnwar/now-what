@@ -4,8 +4,9 @@ import ExportPanel from './ExportPanel';
 import ImportPanel from './ImportPanel';
 import IntegrityPanel from './IntegrityPanel';
 import DangerZone from './DangerZone';
+import RecommendationProfilePanel from '../needs/RecommendationProfilePanel';
 
-type Tab = 'schema' | 'export' | 'import' | 'integrity' | 'danger';
+type Tab = 'schema' | 'profile' | 'export' | 'import' | 'integrity' | 'danger';
 
 export default function DataPage() {
   const [activeTab, setActiveTab] = useState<Tab>('schema');
@@ -59,6 +60,7 @@ export default function DataPage() {
         overflowX: 'auto',
       }}>
         {tabBtn('schema', 'STATUS')}
+        {tabBtn('profile', 'PROFILE')}
         {tabBtn('export', 'EXPORT')}
         {tabBtn('import', 'IMPORT')}
         {tabBtn('integrity', 'INTEGRITY')}
@@ -66,6 +68,7 @@ export default function DataPage() {
       </div>
 
       {activeTab === 'schema' && <SchemaPanel />}
+      {activeTab === 'profile' && <RecommendationProfilePanel />}
       {activeTab === 'export' && <ExportPanel />}
       {activeTab === 'import' && <ImportPanel />}
       {activeTab === 'integrity' && <IntegrityPanel />}
