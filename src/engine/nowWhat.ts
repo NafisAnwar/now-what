@@ -131,7 +131,7 @@ export function normalizeMoodState(input: StateSignalInput): MoodState {
 
   if (energyLevel === 'LOW') return 'LOW';
   if (hasMood && moodValue <= 2) return 'STRESSED';
-  if (restlessSignal && energyLevel !== 'LOW') return 'RESTLESS';
+  if (restlessSignal) return 'RESTLESS';
   return 'NEUTRAL';
 }
 
@@ -309,8 +309,6 @@ function stateReasonForTask(task: Task, ctx: Context, adjustment: number): strin
       return ctx.plannedTaskIds.includes(task.id)
         ? 'Current state logged overloaded. Suggesting the smallest planned action.'
         : 'Current state logged overloaded. Suggesting a short low-friction task.';
-    case 'NEUTRAL':
-      return null;
   }
 }
 
@@ -425,9 +423,17 @@ export async function getCurrentContext(): Promise<Context> {
   const lastWaterAt = allWaterLogs.length > 0 ? allWaterLogs[allWaterLogs.length - 1].createdAt : null;
   const minutesSinceLastWater = lastWaterAt ? (now.getTime() - new Date(lastWaterAt).getTime()) / 60000 : Infinity;
 
-  const allEnergyLogs = await db.activityLogs.where('type').equals('energy').toArray();
+  const allEnergyLogs = await db.activityLogs.where('type').anyOf(['energy', 'state_check']).toArray();
   allEnergyLogs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
-  const lastEnergyValue = allEnergyLogs.length > 0 ? (allEnergyLogs[allEnergyLogs.length - 1].quantity ?? null) : null;
+  const latestEnergyLog = [...allEnergyLogs]
+    .reverse()
+    .find(log => {
+      const value = log.type === 'state_check' ? log.energyLevel : log.quantity;
+      return typeof value === 'number' && Number.isFinite(value);
+    });
+  const lastEnergyValue = latestEnergyLog
+    ? (latestEnergyLog.type === 'state_check' ? latestEnergyLog.energyLevel ?? null : latestEnergyLog.quantity ?? null)
+    : null;
 
   const allFocusLogs = await db.activityLogs.where('type').equals('focus').toArray();
   allFocusLogs.sort((a, b) => a.createdAt.localeCompare(b.createdAt));

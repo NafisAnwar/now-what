@@ -1,7 +1,7 @@
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 export type TaskStatus = 'pending' | 'complete' | 'skipped' | 'missed';
-export type EnergyLevel = 'low' | 'medium' | 'high';
-export type TaskEnergyRequirement = EnergyLevel;
+export type TaskEnergyRequirement = 'low' | 'medium' | 'high';
+export type EnergyLevel = TaskEnergyRequirement;
 export type TaskCategory = 'School' | 'Work' | 'Health' | 'Admin' | 'Personal' | 'Creative' | 'Social' | 'Maintenance' | string;
 
 export type NeedType =
@@ -34,7 +34,8 @@ export type StateType =
   | 'overloaded';
 
 export type FocusCapacity = 'deep' | 'normal' | 'light' | 'recovery';
-export type UserEnergyLevelValue = 1 | 2 | 3 | 4 | 5;
+export type UserEnergyLevel = 1 | 2 | 3 | 4 | 5;
+export type UserEnergyLevelValue = UserEnergyLevel;
 export type UserEnergyBand = 'low' | 'neutral' | 'high';
 
 export interface NeedsProfile {
@@ -71,7 +72,7 @@ export interface Task {
   dueDate?: string;
   dueTime?: string;
   repeatRule: RepeatRule;
-  energyRequired: EnergyLevel;
+  energyRequired: TaskEnergyRequirement;
   goalId?: string;
   notes?: string;
   carryOverHistory: string[];
@@ -142,6 +143,7 @@ export type LogType =
   | 'focus'
   | 'mood'
   | 'energy'
+  | 'state_check'
   | 'rest'
   | 'distraction'
   | 'calendar'
@@ -156,6 +158,8 @@ export interface ActivityLog {
   durationMinutes?: number;
   quantity?: number;
   unit?: string;
+  state?: StateType;
+  energyLevel?: UserEnergyLevel;
   relatedTaskId?: string;
   relatedHabitId?: string;
   relatedGoalId?: string;

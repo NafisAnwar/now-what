@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
-import { db, getActiveDbName } from '../../data/db';
+import { db, getActiveDbName, PROFILE_SCHEMA_VERSION } from '../../data/db';
 import { getSettingsInfo } from '../../data/exportImport';
 import { getActiveProfileRecord, type LocalProfile } from '../../data/profile';
 import { useState, useEffect } from 'react';
@@ -46,6 +46,7 @@ export default function SchemaPanel() {
   const weeklyCount   = useLiveQuery(() => db.weeklyReviews.count(), []) ?? '—';
   const settingsCount   = useLiveQuery(() => db.settings.count(), []) ?? '—';
   const reminderCount   = useLiveQuery(() => db.reminders.count(), []) ?? '—';
+  const needsProfileCount = useLiveQuery(() => db.needsProfiles.count(), []) ?? '—';
 
   const sectionLabel: React.CSSProperties = {
     fontSize: '10px',
@@ -69,10 +70,10 @@ export default function SchemaPanel() {
         <span style={valueStyle}>{profile?.createdAt ? new Date(profile.createdAt).toLocaleString() : '—'}</span>
       </div>
       <div style={row}><span style={labelStyle}>Active database</span><span style={valueStyle}>{getActiveDbName()}</span></div>
-      <div style={row}><span style={labelStyle}>Schema version</span><span style={valueStyle}>{settings?.schemaVersion ?? 2}</span></div>
+      <div style={row}><span style={labelStyle}>Schema version</span><span style={valueStyle}>{settings?.schemaVersion ?? PROFILE_SCHEMA_VERSION}</span></div>
       <div style={row}><span style={labelStyle}>Storage</span><span style={valueStyle}>IndexedDB (local)</span></div>
       <div style={row}><span style={labelStyle}>Local-only status</span><span style={valueStyle}>Local profile active.</span></div>
-      <div style={row}><span style={labelStyle}>Stores</span><span style={valueStyle}>11</span></div>
+      <div style={row}><span style={labelStyle}>Stores</span><span style={valueStyle}>12</span></div>
 
       <div className="mono" style={{ fontSize: '10px', color: 'var(--dim)', marginTop: '10px', lineHeight: 1.6 }}>
         No account required. Data is stored in this browser.
@@ -90,6 +91,7 @@ export default function SchemaPanel() {
       <div style={row}><span style={labelStyle}>Weekly Reviews</span><span style={valueStyle}>{weeklyCount}</span></div>
       <div style={row}><span style={labelStyle}>Settings</span><span style={valueStyle}>{settingsCount}</span></div>
       <div style={row}><span style={labelStyle}>Reminders</span><span style={valueStyle}>{reminderCount}</span></div>
+      <div style={row}><span style={labelStyle}>Recommendation Profiles</span><span style={valueStyle}>{needsProfileCount}</span></div>
 
       <div style={sectionLabel}>EXPORT / IMPORT</div>
       <div style={row}>

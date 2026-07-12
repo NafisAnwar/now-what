@@ -6,6 +6,7 @@ import {
   VALID_LOW_ENERGY_PREFERENCES,
   VALID_NEED_TYPES,
   VALID_PRIORITY_MODES,
+  VALID_STATE_TYPES,
 } from './needsProfile';
 import type { DailyReview, NeedType, NeedsProfile, Reminder } from '../types';
 
@@ -122,6 +123,22 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
         store: 'needsProfiles',
         id: profile.id,
         message: 'NeedsProfile has invalid quietHoursEnd.',
+      });
+    }
+
+    if (
+      raw.stateCheckDismissCount !== undefined &&
+      (
+        typeof raw.stateCheckDismissCount !== 'number' ||
+        !Number.isInteger(raw.stateCheckDismissCount) ||
+        raw.stateCheckDismissCount < 0
+      )
+    ) {
+      issues.push({
+        type: 'error',
+        store: 'needsProfiles',
+        id: profile.id,
+        message: 'NeedsProfile has invalid stateCheckDismissCount.',
       });
     }
 
@@ -356,6 +373,29 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
     }
     if (log.relatedGoalId && !goalIds.has(log.relatedGoalId)) {
       issues.push({ type: 'warning', store: 'activityLogs', id: log.id, message: `Activity log "${log.label}" references a goal that does not exist.` });
+    }
+    if (log.type === 'state_check') {
+      if (!isOneOf(log.state, VALID_STATE_TYPES)) {
+        issues.push({
+          type: 'error',
+          store: 'activityLogs',
+          id: log.id,
+          message: 'State Check log is missing a valid state.',
+        });
+      }
+      if (
+        typeof log.energyLevel !== 'number' ||
+        !Number.isInteger(log.energyLevel) ||
+        log.energyLevel < 1 ||
+        log.energyLevel > 5
+      ) {
+        issues.push({
+          type: 'error',
+          store: 'activityLogs',
+          id: log.id,
+          message: 'State Check log is missing a valid Energy Level from 1 to 5.',
+        });
+      }
     }
   }
 

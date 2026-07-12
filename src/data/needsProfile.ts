@@ -5,6 +5,7 @@ import type {
   NeedsProfile,
   PriorityMode,
   Settings,
+  StateType,
 } from '../types';
 
 export const NEEDS_PROFILE_ID = 'default';
@@ -34,6 +35,15 @@ export const VALID_LOW_ENERGY_PREFERENCES: readonly LowEnergyPreference[] = [
   'recovery',
   'health',
   'critical_only',
+];
+
+export const VALID_STATE_TYPES: readonly StateType[] = [
+  'clear',
+  'neutral',
+  'low',
+  'stressed',
+  'restless',
+  'overloaded',
 ];
 
 export type NeedsProfilePatch = Partial<Omit<NeedsProfile, 'id' | 'createdAt' | 'updatedAt'>>;

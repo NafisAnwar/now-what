@@ -81,6 +81,7 @@ const REVIEWABLE_LOG_TYPES = new Set([
   'focus',
   'mood',
   'energy',
+  'state_check',
   'rest',
   'distraction',
   'note',
