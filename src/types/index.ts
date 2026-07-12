@@ -198,7 +198,81 @@ export type SuggestionActionType =
   | 'review_day'
   | 'plan_tomorrow'
   | 'clear_state'
-  | 'acknowledge_block';
+  | 'acknowledge_block'
+  | 'micro_action';
+
+export type MicroActionCategory =
+  | 'setup'
+  | 'planning'
+  | 'low_energy'
+  | 'recovery'
+  | 'movement'
+  | 'admin'
+  | 'focus'
+  | 'creative'
+  | 'review'
+  | 'maintenance';
+
+export type MicroActionIntent =
+  | 'add_task'
+  | 'add_habit'
+  | 'add_calendar_block'
+  | 'open_tasks'
+  | 'open_habits'
+  | 'open_calendar'
+  | 'open_review'
+  | 'open_quick_log'
+  | 'open_needs_profile'
+  | 'log_state'
+  | 'log_water'
+  | 'log_movement'
+  | 'log_rest'
+  | 'plan_day'
+  | 'review_tasks';
+
+export interface MicroActionTemplate {
+  id: string;
+  title: string;
+  body: string;
+  category: MicroActionCategory;
+  actionType: 'micro_action';
+  actionIntent: MicroActionIntent;
+  needsTags: NeedType[];
+  stateTags: StateType[];
+  capacityTags: FocusCapacity[];
+  energyBandTags: UserEnergyBand[];
+  eligibleWhen: string[];
+  cooldownHours: number;
+}
+
+export interface CandidateScoreBreakdown {
+  candidateIdentity: string;
+  ruleName: string;
+  actionType: string;
+  targetLabel: string;
+  baseScore: number;
+  urgencyScore: number;
+  needsScore: number;
+  userEnergyFitScore: number;
+  taskEnergyFitScore?: number;
+  stateFitScore: number;
+  timeFitScore: number;
+  cooldownPenalty: number;
+  varietyPenalty: number;
+  finalScore: number;
+  explanationParts: string[];
+  selected?: boolean;
+  excludedReason?: string;
+}
+
+export interface RecommendationDeck {
+  primary?: Suggestion;
+  alternatives: Suggestion[];
+  state: 'ready' | 'no_context' | 'cooldown' | 'empty';
+  supportText?: string;
+  pendingCount?: number;
+  debug?: CandidateScoreBreakdown[];
+}
 
 export interface Suggestion {
   id: string;
