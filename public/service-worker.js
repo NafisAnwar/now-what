@@ -12,7 +12,7 @@ const SHELL_URLS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/favicon.svg',
+  '/now_what-transparent_white.png',
   '/icon-192.svg',
   '/icon-512.svg',
 ];

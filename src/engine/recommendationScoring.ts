@@ -1,4 +1,8 @@
 import { getMicroActionById } from './microActions';
+import {
+  getTaskCategoryGroup,
+  getTaskCategoryNeed,
+} from '../constants/categories';
 import type { CandidateAction, Context } from './nowWhat';
 import type {
   CandidateScoreBreakdown,
@@ -28,22 +32,16 @@ function candidateTask(candidate: CandidateAction, ctx: Context): Task | undefin
   return ctx.pendingTasks.find(task => task.id === candidate.targetId);
 }
 
-function taskCategory(task: Task): string {
-  return String(task.category || '').toLowerCase();
-}
-
 function isAdminTask(task: Task): boolean {
-  const category = taskCategory(task);
-  return category.includes('admin') || category.includes('maintenance') || category.includes('personal');
+  return getTaskCategoryGroup(task.category) === 'life_admin';
 }
 
 function isCreativeTask(task: Task): boolean {
-  return taskCategory(task).includes('creative');
+  return getTaskCategoryGroup(task.category) === 'creative_projects';
 }
 
 function isHealthTask(task: Task): boolean {
-  const category = taskCategory(task);
-  return category.includes('health') || category.includes('movement') || category.includes('exercise');
+  return getTaskCategoryGroup(task.category) === 'health_energy';
 }
 
 function taskMinutes(task: Task): number | null {
@@ -125,11 +123,8 @@ function candidateNeeds(candidate: CandidateAction, task?: Task): Set<NeedType> 
   microAction?.needsTags.forEach(need => needs.add(need));
 
   if (task) {
-    const category = taskCategory(task);
-    if (category.includes('school') || category.includes('work')) needs.add('school_work');
-    if (isAdminTask(task)) needs.add('life_admin');
-    if (isHealthTask(task)) needs.add('health_energy');
-    if (isCreativeTask(task)) needs.add('creative_projects');
+    const categoryNeed = getTaskCategoryNeed(task.category);
+    if (categoryNeed) needs.add(categoryNeed);
   }
 
   if (candidate.actionType === 'complete_habit') needs.add('habit_consistency');

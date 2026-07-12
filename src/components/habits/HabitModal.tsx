@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import type { Habit } from '../../types';
+import {
+  CUSTOM_CATEGORY_OPTION,
+  HABIT_CATEGORY_OPTIONS,
+  isCategoryOption,
+} from '../../constants/categories';
 
 interface Props {
   habit?: Habit;
@@ -10,8 +15,16 @@ interface Props {
 }
 
 export default function HabitModal({ habit, onClose, onSaved }: Props) {
+  const initialCategory = habit?.category || 'Health';
   const [name, setName] = useState(habit?.name || '');
-  const [category, setCategory] = useState(habit?.category || 'Health');
+  const [categorySelection, setCategorySelection] = useState(
+    isCategoryOption(initialCategory, HABIT_CATEGORY_OPTIONS)
+      ? initialCategory
+      : CUSTOM_CATEGORY_OPTION
+  );
+  const [customCategory, setCustomCategory] = useState(
+    isCategoryOption(initialCategory, HABIT_CATEGORY_OPTIONS) ? '' : initialCategory
+  );
   const [goalId, setGoalId] = useState(habit?.goalId || '');
   const activeGoals = useLiveQuery(() => db.goals.where('status').equals('active').toArray(), []) || [];
   const goalOptions = Array.from(new Map(activeGoals.map(goal => [goal.id, goal])).values());
@@ -23,6 +36,9 @@ export default function HabitModal({ habit, onClose, onSaved }: Props) {
   const [timeWindowEnd, setTimeWindowEnd] = useState(habit?.timeWindowEnd || '');
   const [notes, setNotes] = useState(habit?.notes || '');
   const [timeError, setTimeError] = useState('');
+  const category = categorySelection === CUSTOM_CATEGORY_OPTION
+    ? customCategory.trim()
+    : categorySelection;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -33,7 +49,7 @@ export default function HabitModal({ habit, onClose, onSaved }: Props) {
   }, [onClose]);
 
   const handleSave = async () => {
-    if (!name.trim()) return;
+    if (!name.trim() || !category) return;
     
     let finalStart = timeWindowStart;
     let finalEnd = timeWindowEnd;
@@ -135,8 +151,26 @@ export default function HabitModal({ habit, onClose, onSaved }: Props) {
 
         <div style={{ marginBottom: '16px' }}>
           <div className="label" style={{ marginBottom: '6px' }}>CATEGORY</div>
-          <input value={category} onChange={e => setCategory(e.target.value)}
-                 style={{ background: 'var(--surface2)', color: 'var(--primary)', border: '1px solid var(--border-hi)', padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0 }} />
+          <select
+            value={categorySelection}
+            onChange={e => setCategorySelection(e.target.value)}
+            aria-label="Habit category"
+            style={{ background: 'var(--surface2)', color: 'var(--primary)', border: '1px solid var(--border-hi)', padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0 }}
+          >
+            {HABIT_CATEGORY_OPTIONS.map(option => (
+              <option key={option} value={option}>{option.toUpperCase()}</option>
+            ))}
+            <option value={CUSTOM_CATEGORY_OPTION}>OTHER / CUSTOM</option>
+          </select>
+          {categorySelection === CUSTOM_CATEGORY_OPTION && (
+            <input
+              value={customCategory}
+              onChange={e => setCustomCategory(e.target.value)}
+              aria-label="Custom habit category"
+              placeholder="CUSTOM CATEGORY"
+              style={{ background: 'var(--surface2)', color: 'var(--primary)', border: '1px solid var(--border-hi)', padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0, marginTop: '8px' }}
+            />
+          )}
           <div className="mono" style={helperStyle}>Used for grouping and review context.</div>
         </div>
 
@@ -229,7 +263,7 @@ export default function HabitModal({ habit, onClose, onSaved }: Props) {
         </div>
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
-          <button onClick={handleSave} className="mono" style={{ background: 'var(--surface2)', color: 'var(--white)', border: '1px solid var(--border-hi)', padding: '8px 16px', fontSize: '12px', textTransform: 'uppercase', cursor: 'pointer', flex: 1 }}>
+          <button onClick={handleSave} disabled={!name.trim() || !category} className="mono" style={{ background: 'var(--surface2)', color: 'var(--white)', border: '1px solid var(--border-hi)', padding: '8px 16px', fontSize: '12px', textTransform: 'uppercase', cursor: 'pointer', flex: 1 }}>
             SAVE
           </button>
           <button onClick={onClose} className="mono" style={{ background: 'transparent', color: 'var(--dim)', border: '1px solid var(--border-hi)', padding: '8px 16px', fontSize: '12px', textTransform: 'uppercase', cursor: 'pointer' }}>

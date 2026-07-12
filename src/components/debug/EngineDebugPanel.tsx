@@ -1,4 +1,10 @@
 import React from 'react';
+import {
+  getTaskCategoryGroup,
+  getTaskCategoryNeed,
+  normalizeCategory,
+  type TaskCategoryGroup,
+} from '../../constants/categories';
 import type { CandidateAction, Context } from '../../engine/nowWhat';
 import { isHardRuleCandidate } from '../../engine/recommendationScoring';
 import type { RecommendationDeck, Suggestion } from '../../types';
@@ -52,6 +58,17 @@ function formatCooldownUntil(value: string | undefined): string {
   return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString();
 }
 
+function categoryEffectLabel(group: TaskCategoryGroup): string {
+  switch (group) {
+    case 'school_work': return 'Needs Profile match';
+    case 'health_energy': return 'Needs Profile + restless-state fit';
+    case 'life_admin': return 'Needs Profile + low-energy/admin fit';
+    case 'creative_projects': return 'Needs Profile + high-energy creative fit';
+    case 'social': return 'neutral; grouping only';
+    case 'unknown': return 'neutral; unrecognized/custom';
+  }
+}
+
 export default function EngineDebugPanel({
   context,
   candidates,
@@ -72,17 +89,23 @@ export default function EngineDebugPanel({
   const scoredCandidates = candidates.filter(candidate => candidate.scoreBreakdown);
 
   const seenTaskIdentities = new Set<string>();
-  const taskEnergyMatches = candidates.flatMap(candidate => {
+  const taskFitMatches = candidates.flatMap(candidate => {
     if (candidate.actionType !== 'start_task' || !candidate.targetId) return [];
     const identity = candidate.identity ?? candidate.targetId;
     if (seenTaskIdentities.has(identity)) return [];
     seenTaskIdentities.add(identity);
     const task = context.pendingTasks.find(item => item.id === candidate.targetId);
     if (!task) return [];
+    const categoryGroup = getTaskCategoryGroup(task.category);
+    const categoryNeed = getTaskCategoryNeed(task.category);
     return [{
       identity,
       requirement: task.energyRequired,
       fitScore: candidate.scoreBreakdown?.taskEnergyFitScore,
+      rawCategory: task.category || '(empty)',
+      normalizedCategory: normalizeCategory(task.category) || '(empty)',
+      categoryGroup,
+      profileAdjustment: categoryNeed && context.needsProfile.selectedNeeds.includes(categoryNeed) ? 7 : 0,
     }];
   });
 
@@ -140,16 +163,36 @@ export default function EngineDebugPanel({
 
       <section className="engine-debug-section" aria-labelledby="engine-debug-energy-fit">
         <h2 id="engine-debug-energy-fit" className="mono engine-debug-section-title">TASK ENERGY MATCHING</h2>
-        {taskEnergyMatches.length === 0 ? (
+        {taskFitMatches.length === 0 ? (
           <div className="mono engine-debug-empty">No task candidates.</div>
         ) : (
           <div className="engine-debug-list">
-            {taskEnergyMatches.map(match => (
+            {taskFitMatches.map(match => (
               <div key={match.identity} className="mono engine-debug-list-row">
                 <span>{match.identity}</span>
                 <span>task={match.requirement}</span>
                 <span>user={context.lastEnergyValue !== null ? `${context.lastEnergyValue}/5` : 'not logged'}</span>
                 <span>fit={scoreValue(match.fitScore)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="engine-debug-section" aria-labelledby="engine-debug-category-fit">
+        <h2 id="engine-debug-category-fit" className="mono engine-debug-section-title">TASK CATEGORY CONTEXT</h2>
+        {taskFitMatches.length === 0 ? (
+          <div className="mono engine-debug-empty">No task candidates.</div>
+        ) : (
+          <div className="engine-debug-list">
+            {taskFitMatches.map(match => (
+              <div key={match.identity} className="mono engine-debug-list-row">
+                <span>{match.identity}</span>
+                <span>raw={match.rawCategory}</span>
+                <span>normalized={match.normalizedCategory}</span>
+                <span>group={match.categoryGroup}</span>
+                <span>profile={match.profileAdjustment > 0 ? `+${match.profileAdjustment}` : '0'}</span>
+                <span>effect={categoryEffectLabel(match.categoryGroup)}</span>
               </div>
             ))}
           </div>

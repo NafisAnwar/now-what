@@ -142,8 +142,11 @@ try {
   const engine = await server.ssrLoadModule('/src/engine/nowWhat.ts');
   const scoring = await server.ssrLoadModule('/src/engine/recommendationScoring.ts');
   const microActions = await server.ssrLoadModule('/src/engine/microActions.ts');
+  const categories = await server.ssrLoadModule('/src/constants/categories.ts');
   const needsProfile = await server.ssrLoadModule('/src/data/needsProfile.ts');
   const exportImport = await server.ssrLoadModule('/src/data/exportImport.ts');
+  const habitModal = await server.ssrLoadModule('/src/components/habits/HabitModal.tsx');
+  const goalModal = await server.ssrLoadModule('/src/components/goals/GoalModal.tsx');
   const debugPanel = await server.ssrLoadModule('/src/components/debug/EngineDebugPanel.tsx');
   const dbModule = await server.ssrLoadModule('/src/data/db.ts');
   const integrity = await server.ssrLoadModule('/src/data/integrity.ts');
@@ -155,6 +158,52 @@ try {
   assert.equal(engine.normalizeEnergyLevel(1), 'LOW');
   assert.equal(engine.normalizeEnergyLevel(3), 'MEDIUM');
   assert.equal(engine.normalizeEnergyLevel(5), 'HIGH');
+  assert.equal(categories.normalizeCategory('  WoRK  '), 'work');
+  assert.equal(categories.normalizeCategory('Life_Admin'), 'life admin');
+  assert.deepEqual(
+    categories.TASK_CATEGORY_OPTIONS.map(category => categories.getTaskCategoryGroup(category)),
+    ['school_work', 'school_work', 'health_energy', 'life_admin', 'life_admin', 'creative_projects', 'social', 'life_admin']
+  );
+  assert.equal(categories.getTaskCategoryGroup('Movement'), 'health_energy');
+  assert.equal(categories.getTaskCategoryGroup('Unmapped custom domain'), 'unknown');
+  assert.equal(categories.getTaskCategoryNeed('Social'), null);
+  assert.equal(new Set(categories.TASK_CATEGORY_OPTIONS).size, categories.TASK_CATEGORY_OPTIONS.length);
+  assert.equal(new Set(categories.HABIT_CATEGORY_OPTIONS).size, categories.HABIT_CATEGORY_OPTIONS.length);
+  assert.equal(new Set(categories.GOAL_CATEGORY_OPTIONS).size, categories.GOAL_CATEGORY_OPTIONS.length);
+  assert.equal(categories.TASK_CATEGORY_OPTIONS.includes(categories.CUSTOM_CATEGORY_OPTION), false);
+
+  const legacyHabitMarkup = renderToStaticMarkup(React.createElement(habitModal.default, {
+    habit: {
+      id: 'legacy-habit',
+      name: 'Legacy habit',
+      category: 'Legacy Wellness',
+      frequency: 'daily',
+      completionType: 'boolean',
+      completionHistory: [],
+      createdAt: '2026-07-12T08:00:00.000Z',
+      updatedAt: '2026-07-12T08:00:00.000Z',
+    },
+    onClose: () => undefined,
+  }));
+  assert.match(legacyHabitMarkup, /value="__custom__" selected="">OTHER \/ CUSTOM/);
+  assert.match(legacyHabitMarkup, /Legacy Wellness/);
+
+  const legacyGoalMarkup = renderToStaticMarkup(React.createElement(goalModal.default, {
+    goal: {
+      id: 'legacy-goal',
+      title: 'Legacy goal',
+      category: 'Legacy Project Type',
+      horizon: 'month',
+      linkedTaskIds: [],
+      linkedHabitIds: [],
+      status: 'active',
+      createdAt: '2026-07-12T08:00:00.000Z',
+      updatedAt: '2026-07-12T08:00:00.000Z',
+    },
+    onClose: () => undefined,
+  }));
+  assert.match(legacyGoalMarkup, /value="__custom__" selected="">OTHER \/ CUSTOM/);
+  assert.match(legacyGoalMarkup, /Legacy Project Type/);
 
   const blankContext = makeContext({ hasUserContext: false });
   const blankCandidates = engine.getCandidateActions(blankContext);
@@ -280,6 +329,31 @@ try {
   const workNeedsScore = scoring.scoreCandidate(taskCandidate(workTask), needsContext).scoreBreakdown.needsScore;
   const healthNeedsScore = scoring.scoreCandidate(taskCandidate(healthTask), needsContext).scoreBreakdown.needsScore;
   assert.ok(workNeedsScore > healthNeedsScore);
+  const normalizedWorkTask = makeTask({ id: 'normalized-work', category: '  wOrK  ' });
+  const unknownCategoryTask = makeTask({ id: 'unknown-category', category: 'Unmapped custom domain' });
+  const categoryContext = makeContext({
+    pendingTasks: [workTask, healthTask, normalizedWorkTask, unknownCategoryTask],
+    totalTaskCount: 4,
+    needsProfile: { selectedNeeds: ['school_work'], priorityMode: 'deadline' },
+  });
+  const normalizedWorkNeedsScore = scoring.scoreCandidate(taskCandidate(normalizedWorkTask), categoryContext).scoreBreakdown.needsScore;
+  const unknownCategoryNeedsScore = scoring.scoreCandidate(taskCandidate(unknownCategoryTask), categoryContext).scoreBreakdown.needsScore;
+  assert.equal(normalizedWorkNeedsScore, workNeedsScore);
+  assert.equal(unknownCategoryNeedsScore, healthNeedsScore);
+
+  const adminHighTask = makeTask({ id: 'admin-high', category: 'Admin', energyRequired: 'high', estimatedMinutes: 90 });
+  const customHighTask = makeTask({ id: 'custom-high', category: 'Unmapped custom domain', energyRequired: 'high', estimatedMinutes: 90 });
+  const categoryEnergyContext = makeContext({
+    pendingTasks: [adminHighTask, customHighTask],
+    totalTaskCount: 2,
+    lastEnergyValue: 1,
+    userEnergyBand: 'low',
+    latestEnergyLevel: 'LOW',
+  });
+  const adminHighEnergyFit = scoring.scoreCandidate(taskCandidate(adminHighTask), categoryEnergyContext).scoreBreakdown.taskEnergyFitScore;
+  const customHighEnergyFit = scoring.scoreCandidate(taskCandidate(customHighTask), categoryEnergyContext).scoreBreakdown.taskEnergyFitScore;
+  assert.equal(adminHighTask.energyRequired, 'high');
+  assert.equal(adminHighEnergyFit, customHighEnergyFit);
 
   const setupContext = makeContext({
     meaningfulActivityCountToday: 1,
@@ -398,6 +472,10 @@ try {
   assert.match(debugMarkup, /latestUserEnergyLevel/);
   assert.match(debugMarkup, /scoringEnergyBand/);
   assert.match(debugMarkup, /TASK ENERGY MATCHING/);
+  assert.match(debugMarkup, /TASK CATEGORY CONTEXT/);
+  assert.match(debugMarkup, /normalized=work/);
+  assert.match(debugMarkup, /group=school_work/);
+  assert.match(debugMarkup, /effect=Needs Profile match/);
   assert.match(debugMarkup, /CANDIDATE SCORING/);
   assert.match(debugMarkup, /COOLDOWN \/ OVERRIDES/);
   assert.doesNotMatch(debugMarkup, />SAVE</);
@@ -420,7 +498,7 @@ try {
   assert.ok(invalidIntegrityReport.issues.some(issue => issue.message.includes('invalid energyRequired')));
   assert.ok(invalidIntegrityReport.issues.some(issue => issue.message.includes('value from 1 to 5')));
 
-  console.log('v1.2 engine QA: 55 assertions passed');
+  console.log('v1.2 engine QA: 77 assertions passed');
 } finally {
   await server.close();
 }

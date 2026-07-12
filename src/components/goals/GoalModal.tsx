@@ -2,6 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import type { Goal } from '../../types';
+import {
+  CUSTOM_CATEGORY_OPTION,
+  GOAL_CATEGORY_OPTIONS,
+  isCategoryOption,
+} from '../../constants/categories';
 
 interface Props {
   goal?: Goal;
@@ -29,13 +34,24 @@ const helperStyle: React.CSSProperties = {
 };
 
 export default function GoalModal({ goal, onClose }: Props) {
+  const initialCategory = goal?.category || 'Personal';
   const [title, setTitle] = useState(goal?.title || '');
-  const [category, setCategory] = useState(goal?.category || 'Personal');
+  const [categorySelection, setCategorySelection] = useState(
+    isCategoryOption(initialCategory, GOAL_CATEGORY_OPTIONS)
+      ? initialCategory
+      : CUSTOM_CATEGORY_OPTION
+  );
+  const [customCategory, setCustomCategory] = useState(
+    isCategoryOption(initialCategory, GOAL_CATEGORY_OPTIONS) ? '' : initialCategory
+  );
   const [horizon, setHorizon] = useState<'week' | 'month' | 'semester' | 'year' | 'ongoing'>(goal?.horizon || 'month');
   const [status, setStatus] = useState<'active' | 'paused' | 'complete'>(goal?.status || 'active');
   const [linkedTaskIds, setLinkedTaskIds] = useState<string[]>(goal?.linkedTaskIds || []);
   const [linkedHabitIds, setLinkedHabitIds] = useState<string[]>(goal?.linkedHabitIds || []);
   const [reviewNotes, setReviewNotes] = useState(goal?.reviewNotes || '');
+  const category = categorySelection === CUSTOM_CATEGORY_OPTION
+    ? customCategory.trim()
+    : categorySelection;
 
   const pendingTasks = useLiveQuery(() => db.tasks.where('status').equals('pending').toArray(), []) || [];
   const allHabits = useLiveQuery(() => db.habits.toArray(), []) || [];
@@ -49,7 +65,7 @@ export default function GoalModal({ goal, onClose }: Props) {
   }, [onClose]);
 
   const handleSave = async () => {
-    if (!title.trim()) return;
+    if (!title.trim() || !category) return;
     const now = new Date().toISOString();
 
     await db.transaction('rw', db.goals, db.tasks, db.habits, async () => {
@@ -210,11 +226,26 @@ export default function GoalModal({ goal, onClose }: Props) {
 
         <div style={{ marginBottom: '16px' }}>
           <div className="label" style={{ marginBottom: '6px' }}>CATEGORY</div>
-          <input
-            value={category}
-            onChange={e => setCategory(e.target.value)}
+          <select
+            value={categorySelection}
+            onChange={e => setCategorySelection(e.target.value)}
+            aria-label="Goal category"
             style={inputStyle}
-          />
+          >
+            {GOAL_CATEGORY_OPTIONS.map(option => (
+              <option key={option} value={option}>{option.toUpperCase()}</option>
+            ))}
+            <option value={CUSTOM_CATEGORY_OPTION}>OTHER / CUSTOM</option>
+          </select>
+          {categorySelection === CUSTOM_CATEGORY_OPTION && (
+            <input
+              value={customCategory}
+              onChange={e => setCustomCategory(e.target.value)}
+              aria-label="Custom goal category"
+              placeholder="CUSTOM CATEGORY"
+              style={inputStyle}
+            />
+          )}
           <div className="mono" style={helperStyle}>Used for grouping and review context.</div>
         </div>
 
@@ -330,6 +361,7 @@ export default function GoalModal({ goal, onClose }: Props) {
         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
           <button
             onClick={handleSave}
+            disabled={!title.trim() || !category}
             className="mono"
             style={{
               background: 'var(--surface2)', color: 'var(--white)',

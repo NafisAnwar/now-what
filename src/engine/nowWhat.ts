@@ -1,4 +1,5 @@
 import { db } from '../data/db';
+import { getTaskCategoryGroup } from '../constants/categories';
 import { hasReviewableActivity, isDailyReviewIncomplete } from '../data/review';
 import { getCalendarBlocksForDate } from '../data/calendar';
 import { getOrCreateNeedsProfile, isValidUserEnergyLevel } from '../data/needsProfile';
@@ -208,18 +209,12 @@ function isLongTask(task: Task): boolean {
   return minutes !== null && minutes >= 60;
 }
 
-function categoryText(task: Task): string {
-  return String(task.category || '').toLowerCase();
-}
-
 function isAdminOrMaintenanceTask(task: Task): boolean {
-  const category = categoryText(task);
-  return category.includes('admin') || category.includes('maintenance') || category.includes('personal');
+  return getTaskCategoryGroup(task.category) === 'life_admin';
 }
 
 function isPhysicalTask(task: Task): boolean {
-  const category = categoryText(task);
-  return category.includes('health') || category.includes('movement') || category.includes('exercise') || category.includes('physical');
+  return getTaskCategoryGroup(task.category) === 'health_energy';
 }
 
 function isUrgentTask(task: Task, ctx: Context): boolean {

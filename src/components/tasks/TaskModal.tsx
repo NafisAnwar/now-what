@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import Modal from '../ui/Modal';
 import { db } from '../../data/db';
 import type { Task } from '../../types';
+import { TASK_CATEGORY_OPTIONS } from '../../constants/categories';
 
 interface Props {
   onClose: () => void;
@@ -88,7 +89,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>CATEGORY</div>
             <select style={inputStyle} value={category} onChange={e => setCategory(e.target.value)}>
-              {['School', 'Work', 'Health', 'Admin', 'Personal', 'Creative', 'Social', 'Maintenance'].map(c => (
+              {TASK_CATEGORY_OPTIONS.map(c => (
                 <option key={c} value={c}>{c}</option>
               ))}
             </select>
