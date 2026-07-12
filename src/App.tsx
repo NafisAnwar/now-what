@@ -19,23 +19,45 @@ import { initializeProfileSession } from './data/profile';
 import TaskModal from './components/tasks/TaskModal';
 import HabitModal from './components/habits/HabitModal';
 import GoalModal from './components/goals/GoalModal';
+import CalendarBlockModal from './components/calendar/CalendarBlockModal';
 import QuickLogModal from './components/quicklog/QuickLogModal';
 import EngineDebugPanel from './components/debug/EngineDebugPanel';
 import { ToastProvider } from './components/ui/Toast';
 import type { Context, CandidateAction } from './engine/nowWhat';
-import type { Suggestion } from './types';
+import type { RecommendationDeck, Suggestion } from './types';
 
 /** Lives inside WouterRouter so it can call useLocation */
 function NavigationHandler() {
   const [, navigate] = useLocation();
   useEffect(() => {
     const handleFocusTask = () => navigate('/tasks');
+    const handleNavigateTasks = () => navigate('/tasks');
+    const handleNavigateHabits = () => navigate('/habits');
+    const handleNavigateCalendar = () => navigate('/calendar');
     const handleNavigateReview = () => navigate('/review');
+    const handleNavigateDashboard = () => navigate('/');
+    const handleOpenRecommendationProfile = () => {
+      sessionStorage.setItem('nowwhat:data-tab', 'profile');
+      navigate('/data');
+      window.setTimeout(() => {
+        window.dispatchEvent(new Event('select_recommendation_profile_tab'));
+      }, 0);
+    };
     window.addEventListener('focus_task', handleFocusTask);
+    window.addEventListener('navigate_tasks', handleNavigateTasks);
+    window.addEventListener('navigate_habits', handleNavigateHabits);
+    window.addEventListener('navigate_calendar', handleNavigateCalendar);
     window.addEventListener('navigate_review', handleNavigateReview);
+    window.addEventListener('navigate_dashboard', handleNavigateDashboard);
+    window.addEventListener('open_recommendation_profile', handleOpenRecommendationProfile);
     return () => {
       window.removeEventListener('focus_task', handleFocusTask);
+      window.removeEventListener('navigate_tasks', handleNavigateTasks);
+      window.removeEventListener('navigate_habits', handleNavigateHabits);
+      window.removeEventListener('navigate_calendar', handleNavigateCalendar);
       window.removeEventListener('navigate_review', handleNavigateReview);
+      window.removeEventListener('navigate_dashboard', handleNavigateDashboard);
+      window.removeEventListener('open_recommendation_profile', handleOpenRecommendationProfile);
     };
   }, [navigate]);
   return null;
@@ -45,6 +67,7 @@ interface DebugData {
   context: Context | null;
   candidates: CandidateAction[];
   suggestion: Suggestion | null;
+  deck?: RecommendationDeck | null;
 }
 
 function NotFound() {
@@ -83,6 +106,7 @@ export default function App() {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [isCalendarBlockModalOpen, setIsCalendarBlockModalOpen] = useState(false);
   const [isQuickLogModalOpen, setIsQuickLogModalOpen] = useState(false);
   const [debugOpen, setDebugOpen] = useState(false);
   const [debugData, setDebugData] = useState<DebugData | null>(null);
@@ -187,6 +211,7 @@ export default function App() {
     const handleOpenTask = () => setIsTaskModalOpen(true);
     const handleOpenHabit = () => setIsHabitModalOpen(true);
     const handleOpenGoal = () => setIsGoalModalOpen(true);
+    const handleOpenCalendarBlock = () => setIsCalendarBlockModalOpen(true);
     const handleOpenQuickLog = () => setIsQuickLogModalOpen(true);
 
     const handleDebugUpdate = (e: Event) => {
@@ -198,6 +223,7 @@ export default function App() {
     window.addEventListener('open_task_modal', handleOpenTask);
     window.addEventListener('open_habit_modal', handleOpenHabit);
     window.addEventListener('open_goal_modal', handleOpenGoal);
+    window.addEventListener('open_calendar_block_modal', handleOpenCalendarBlock);
     window.addEventListener('open_quick_log', handleOpenQuickLog);
     window.addEventListener('engine_debug_update', handleDebugUpdate);
 
@@ -206,6 +232,7 @@ export default function App() {
       window.removeEventListener('open_task_modal', handleOpenTask);
       window.removeEventListener('open_habit_modal', handleOpenHabit);
       window.removeEventListener('open_goal_modal', handleOpenGoal);
+      window.removeEventListener('open_calendar_block_modal', handleOpenCalendarBlock);
       window.removeEventListener('open_quick_log', handleOpenQuickLog);
       window.removeEventListener('engine_debug_update', handleDebugUpdate);
     };
@@ -235,6 +262,14 @@ export default function App() {
       {isTaskModalOpen && <TaskModal onClose={() => setIsTaskModalOpen(false)} />}
       {isHabitModalOpen && <HabitModal onClose={() => setIsHabitModalOpen(false)} />}
       {isGoalModalOpen && <GoalModal onClose={() => setIsGoalModalOpen(false)} />}
+      {isCalendarBlockModalOpen && (
+        <CalendarBlockModal
+          onClose={() => setIsCalendarBlockModalOpen(false)}
+          onSaved={() => {
+            window.dispatchEvent(new Event('regenerate_now_what'));
+          }}
+        />
+      )}
       {isQuickLogModalOpen && <QuickLogModal onClose={() => setIsQuickLogModalOpen(false)} />}
       {debugOpen && debugData && <EngineDebugPanel {...debugData} onClose={() => setDebugOpen(false)} />}
     </ToastProvider>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import SchemaPanel from './SchemaPanel';
 import ExportPanel from './ExportPanel';
 import ImportPanel from './ImportPanel';
@@ -8,8 +8,23 @@ import RecommendationProfilePanel from '../needs/RecommendationProfilePanel';
 
 type Tab = 'schema' | 'profile' | 'export' | 'import' | 'integrity' | 'danger';
 
+function getRequestedTab(): Tab {
+  const requestedTab = sessionStorage.getItem('nowwhat:data-tab');
+  return requestedTab === 'profile' ? 'profile' : 'schema';
+}
+
 export default function DataPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('schema');
+  const [activeTab, setActiveTab] = useState<Tab>(getRequestedTab);
+
+  useEffect(() => {
+    sessionStorage.removeItem('nowwhat:data-tab');
+    const handleProfileRequest = () => {
+      sessionStorage.removeItem('nowwhat:data-tab');
+      setActiveTab('profile');
+    };
+    window.addEventListener('select_recommendation_profile_tab', handleProfileRequest);
+    return () => window.removeEventListener('select_recommendation_profile_tab', handleProfileRequest);
+  }, []);
 
   const tabBtn = (tab: Tab, label: string): React.ReactElement => {
     const active = activeTab === tab;

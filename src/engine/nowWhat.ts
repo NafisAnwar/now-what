@@ -670,17 +670,13 @@ function makeNoContextCandidate(): CandidateAction {
   };
 }
 
-function makeNoActionReadyCandidate(ctx: Context): CandidateAction {
-  const pendingTaskLine = ctx.pendingTasks.length > 0
-    ? ` ${ctx.pendingTasks.length} pending task${ctx.pendingTasks.length === 1 ? '' : 's'} available.`
-    : '';
-
+function makeNoActionReadyCandidate(): CandidateAction {
   return {
     ruleName: 'no_action_ready',
     actionType: 'clear_state',
     command: 'NO ACTION READY',
     targetLabel: 'Current recommendations are in cooldown.',
-    reason: `Dismissed actions will return when their cooldown expires or when new context is added.${pendingTaskLine}`,
+    reason: 'Dismissed actions will return when their cooldown expires or when new context is added.',
     priority: 12,
     identity: 'state:no_action_ready',
   };
@@ -1354,7 +1350,7 @@ export async function generateRecommendationDeckWithDebugInfo(
     action = availableActionCandidates[0];
     deckState = 'ready';
   } else if (cooldownResult.excludedCandidateIdentities.length > 0) {
-    action = scoreAndRankCandidates([makeNoActionReadyCandidate(baseContext)], baseContext)[0];
+    action = scoreAndRankCandidates([makeNoActionReadyCandidate()], baseContext)[0];
     deckState = 'cooldown';
   } else {
     action = scoredAvailable[0] ?? scoreAndRankCandidates([makeNoContextCandidate()], baseContext)[0];

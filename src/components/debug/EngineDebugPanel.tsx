@@ -1,15 +1,16 @@
 import React from 'react';
 import type { Context, CandidateAction } from '../../engine/nowWhat';
-import type { Suggestion } from '../../types';
+import type { RecommendationDeck, Suggestion } from '../../types';
 
 interface EngineDebugPanelProps {
   context: Context | null;
   candidates: CandidateAction[];
   suggestion: Suggestion | null;
+  deck?: RecommendationDeck | null;
   onClose: () => void;
 }
 
-export default function EngineDebugPanel({ context, candidates, suggestion, onClose }: EngineDebugPanelProps) {
+export default function EngineDebugPanel({ context, candidates, suggestion, deck, onClose }: EngineDebugPanelProps) {
   if (!context) return null;
 
   return (
@@ -35,6 +36,23 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
         </button>
       </div>
 
+      {deck && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div className="mono label" style={{ color: 'var(--white)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>DECK</div>
+          <div className="mono" style={{ fontSize: '10px', color: 'var(--secondary)' }}>
+            <div><span style={{ color: 'var(--dim)' }}>STATE:</span> {deck.state}</div>
+            <div><span style={{ color: 'var(--dim)' }}>PRIMARY:</span> {deck.primary?.command ?? 'none'}</div>
+            <div><span style={{ color: 'var(--dim)' }}>ALTERNATIVES:</span> {deck.alternatives.length}</div>
+            <div><span style={{ color: 'var(--dim)' }}>PENDING:</span> {deck.pendingCount ?? 0}</div>
+            {deck.alternatives.map(alternative => (
+              <div key={alternative.id}>
+                <span style={{ color: 'var(--dim)' }}>ALT:</span> {alternative.command}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div className="mono label" style={{ color: 'var(--white)', borderBottom: '1px solid var(--border)', paddingBottom: '4px' }}>CONTEXT</div>
         <div className="mono" style={{ fontSize: '10px', color: 'var(--dim)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
@@ -48,7 +66,7 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
           <div>Reviewable today: <span style={{ color: 'var(--secondary)' }}>{context.hasReviewableActivityToday ? 'yes' : 'no'}</span></div>
           <div>Cooldowns: <span style={{ color: 'var(--secondary)' }}>{context.activeCooldownCount}</span></div>
           <div>State: <span style={{ color: 'var(--secondary)' }}>{context.latestMoodState}</span></div>
-          <div>Energy level: <span style={{ color: 'var(--secondary)' }}>{context.latestEnergyLevel || 'â€”'}</span></div>
+          <div>Energy level: <span style={{ color: 'var(--secondary)' }}>{context.latestEnergyLevel || '--'}</span></div>
           <div>Capacity: <span style={{ color: 'var(--secondary)' }}>{context.currentFocusCapacity}</span></div>
           <div>Energy: <span style={{ color: 'var(--secondary)' }}>{context.lastEnergyValue !== null ? `${context.lastEnergyValue}/5` : '—'}</span></div>
           <div>Mood: <span style={{ color: 'var(--secondary)' }}>{context.lastMoodValue !== null ? `${context.lastMoodValue}/5` : '—'}</span></div>
@@ -84,6 +102,9 @@ export default function EngineDebugPanel({ context, candidates, suggestion, onCl
               <span style={{ opacity: 0.7 }}>
                 state {c.stateAdjustment && c.stateAdjustment > 0 ? '+' : ''}{c.stateAdjustment?.toFixed(1)}
               </span>
+            )}
+            {c.scoreBreakdown && (
+              <span style={{ opacity: 0.7 }}>score {c.scoreBreakdown.finalScore.toFixed(1)}</span>
             )}
             {c.cooldownReason && <span style={{ opacity: 0.7 }}>cooldown</span>}
           </div>
