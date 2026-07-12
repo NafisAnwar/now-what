@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../data/db';
+import { isValidUserEnergyLevel } from '../../data/needsProfile';
 import type { LogType, ActivityLog } from '../../types';
 
 type LogExtra = Partial<Omit<ActivityLog, 'id' | 'type' | 'label' | 'createdAt'>>;
@@ -44,25 +45,27 @@ export default function QuickLogModal({ onClose }: Props) {
 
     switch (activeAction) {
       case 'focus':
-        await logDirectly('focus', `Focus — ${durNum || 0}min`, { durationMinutes: durNum, notes });
+        await logDirectly('focus', `Focus - ${durNum || 0}min`, { durationMinutes: durNum, notes });
         break;
       case 'meal':
         await logDirectly('meal', label || 'Meal', { notes });
         break;
       case 'exercise':
-        await logDirectly('exercise', label || `Exercise — ${durNum || 0}min`, { durationMinutes: durNum });
+        await logDirectly('exercise', label || `Exercise - ${durNum || 0}min`, { durationMinutes: durNum });
         break;
       case 'mood':
-        await logDirectly('mood', `Mood — ${valNum || 0}/5`, { quantity: valNum, notes });
+        if (!isValidUserEnergyLevel(valNum)) return;
+        await logDirectly('mood', `Mood - ${valNum}/5`, { quantity: valNum, notes });
         break;
       case 'energy':
-        await logDirectly('energy', `Energy — ${valNum || 0}/5`, { quantity: valNum, notes });
+        if (!isValidUserEnergyLevel(valNum)) return;
+        await logDirectly('energy', `Energy - ${valNum}/5`, { quantity: valNum, notes });
         break;
       case 'rest':
-        await logDirectly('rest', `Rest — ${durNum || 0}min`, { durationMinutes: durNum, notes });
+        await logDirectly('rest', `Rest - ${durNum || 0}min`, { durationMinutes: durNum, notes });
         break;
       case 'distraction':
-        await logDirectly('distraction', `Distraction — ${durNum || 0}min`, { durationMinutes: durNum, notes });
+        await logDirectly('distraction', `Distraction - ${durNum || 0}min`, { durationMinutes: durNum, notes });
         break;
     }
   };
@@ -74,6 +77,8 @@ export default function QuickLogModal({ onClose }: Props) {
 
   const renderActionFields = () => {
     if (!activeAction) return null;
+    const requiresScaleValue = activeAction === 'mood' || activeAction === 'energy';
+    const canLogAction = !requiresScaleValue || isValidUserEnergyLevel(Number(value));
     return (
       <div style={{ marginTop: '16px', padding: '16px', border: '1px solid var(--border-hi)', background: 'var(--surface2)' }}>
         <div className="mono label" style={{ marginBottom: '16px' }}>{activeAction.toUpperCase()} DETAILS</div>
@@ -97,7 +102,7 @@ export default function QuickLogModal({ onClose }: Props) {
         {(activeAction === 'mood' || activeAction === 'energy') && (
           <div style={{ marginBottom: '16px' }}>
             <div className="label" style={{ marginBottom: '6px' }}>VALUE (1-5)</div>
-            <input type="number" min="1" max="5" value={value} onChange={e => setValue(e.target.value)}
+            <input type="number" min="1" max="5" step="1" required value={value} onChange={e => setValue(e.target.value)}
                    style={{ background: 'var(--surface)', color: 'var(--primary)', border: '1px solid var(--border-hi)', padding: '8px 12px', fontFamily: 'var(--mono)', width: '100%', fontSize: '13px', borderRadius: 0 }} />
           </div>
         )}
@@ -110,7 +115,7 @@ export default function QuickLogModal({ onClose }: Props) {
           </div>
         )}
 
-        <button onClick={handleLogAction} className="mono" style={{ background: 'var(--white)', color: 'var(--bg)', border: 'none', padding: '8px 16px', fontSize: '12px', textTransform: 'uppercase', cursor: 'pointer', width: '100%' }}>
+        <button type="button" onClick={handleLogAction} disabled={!canLogAction} className="mono" style={{ background: 'var(--white)', color: 'var(--bg)', border: 'none', padding: '8px 16px', fontSize: '12px', textTransform: 'uppercase', cursor: 'pointer', width: '100%' }}>
           LOG {activeAction}
         </button>
       </div>
@@ -121,10 +126,12 @@ export default function QuickLogModal({ onClose }: Props) {
     const active = activeAction === key;
     return (
       <button
+        type="button"
+        aria-pressed={isDirect ? undefined : active}
         onClick={() => {
           if (isDirect) {
-            if (key === 'water_250') logDirectly('water', 'Water — 250ml', { quantity: 250, unit: 'ml' });
-            if (key === 'water_500') logDirectly('water', 'Water — 500ml', { quantity: 500, unit: 'ml' });
+            if (key === 'water_250') logDirectly('water', 'Water - 250ml', { quantity: 250, unit: 'ml' });
+            if (key === 'water_500') logDirectly('water', 'Water - 500ml', { quantity: 500, unit: 'ml' });
           } else {
             setActiveAction(key);
           }

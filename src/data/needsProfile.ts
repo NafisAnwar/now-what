@@ -49,6 +49,10 @@ export const VALID_STATE_TYPES: readonly StateType[] = [
   'overloaded',
 ];
 
+export function isValidUserEnergyLevel(value: unknown): value is UserEnergyLevel {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 5;
+}
+
 export type NeedsProfilePatch = Partial<Omit<NeedsProfile, 'id' | 'createdAt' | 'updatedAt'>>;
 
 export interface SaveStateCheckResult {
@@ -89,14 +93,21 @@ function moveOutsideQuietHours(date: Date, profile: NeedsProfile): Date {
     : date;
 }
 
+export function getStateCheckIntervalHours(
+  profile: Pick<NeedsProfile, 'checkInIntervalHours'>,
+  dismissCount = 0
+): number {
+  return dismissCount >= 2
+    ? Math.max(12, profile.checkInIntervalHours * 2)
+    : profile.checkInIntervalHours;
+}
+
 function calculateNextStateCheck(
   profile: NeedsProfile,
   fromDate: Date,
   dismissCount = 0
 ): Date {
-  const intervalHours = dismissCount >= 2
-    ? Math.max(12, profile.checkInIntervalHours * 2)
-    : profile.checkInIntervalHours;
+  const intervalHours = getStateCheckIntervalHours(profile, dismissCount);
   return moveOutsideQuietHours(
     new Date(fromDate.getTime() + intervalHours * HOUR_MS),
     profile

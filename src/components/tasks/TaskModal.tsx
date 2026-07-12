@@ -12,12 +12,12 @@ interface Props {
 export default function TaskModal({ onClose, onSaved }: Props) {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('Work');
-  const [priority, setPriority] = useState('medium');
-  const [energy, setEnergy] = useState('medium');
+  const [priority, setPriority] = useState<Task['priority']>('medium');
+  const [energy, setEnergy] = useState<Task['energyRequired']>('medium');
   const [minutes, setMinutes] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [repeat, setRepeat] = useState('none');
+  const [repeat, setRepeat] = useState<Task['repeatRule']['type']>('none');
   const [goalId, setGoalId] = useState('');
   const activeGoals = useLiveQuery(() => db.goals.where('status').equals('active').toArray(), []) || [];
   const goalOptions = Array.from(new Map(activeGoals.map(goal => [goal.id, goal])).values());
@@ -32,12 +32,12 @@ export default function TaskModal({ onClose, onSaved }: Props) {
       id: crypto.randomUUID(),
       title: title.trim(),
       category,
-      priority: priority as any,
+      priority,
       status: 'pending',
       estimatedMinutes: minutes ? parseInt(minutes, 10) : undefined,
       dueDate: dueDate || undefined,
-      energyRequired: energy as any,
-      repeatRule: { type: repeat as any },
+      energyRequired: energy,
+      repeatRule: { type: repeat },
       notes: notes || undefined,
       goalId: goalId || undefined,
       missedCount: 0,
@@ -96,7 +96,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
           </div>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>PRIORITY</div>
-            <select style={inputStyle} value={priority} onChange={e => setPriority(e.target.value)}>
+            <select style={inputStyle} value={priority} onChange={e => setPriority(e.target.value as Task['priority'])}>
               <option value="low">LOW</option>
               <option value="medium">MEDIUM</option>
               <option value="high">HIGH</option>
@@ -109,7 +109,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>ENERGY</div>
-            <select style={inputStyle} value={energy} onChange={e => setEnergy(e.target.value)}>
+            <select style={inputStyle} value={energy} onChange={e => setEnergy(e.target.value as Task['energyRequired'])}>
               <option value="low">LOW</option>
               <option value="medium">MEDIUM</option>
               <option value="high">HIGH</option>
@@ -140,7 +140,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
           </div>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>REPEAT</div>
-            <select style={inputStyle} value={repeat} onChange={e => setRepeat(e.target.value)}>
+            <select style={inputStyle} value={repeat} onChange={e => setRepeat(e.target.value as Task['repeatRule']['type'])}>
               <option value="none">NONE</option>
               <option value="daily">DAILY</option>
               <option value="weekly">WEEKLY</option>

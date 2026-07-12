@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
+import { isValidUserEnergyLevel } from '../../data/needsProfile';
 import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
 
 export default function LifestyleStrip() {
@@ -22,15 +23,20 @@ export default function LifestyleStrip() {
   const energyLogs = logs
     .filter(l => l.type === 'energy' || l.type === 'state_check')
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const latestEnergy = energyLogs[0];
+  const latestEnergy = energyLogs.find(log => {
+    const level = log.type === 'state_check' ? log.energyLevel : log.quantity;
+    return isValidUserEnergyLevel(level);
+  });
   const energyLevel = latestEnergy?.type === 'state_check' ? latestEnergy.energyLevel : latestEnergy?.quantity;
-  const energyVal = typeof energyLevel === 'number' ? `${energyLevel}/5` : '—';
+  const energyVal = isValidUserEnergyLevel(energyLevel) ? `${energyLevel}/5` : '--';
 
   const stateLogs = logs.filter(l => l.type === 'state_check').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const stateVal = stateLogs[0]?.state?.toUpperCase() ?? '—';
+  const stateVal = stateLogs[0]?.state?.toUpperCase() ?? '--';
   
-  const moodLogs = logs.filter(l => l.type === 'mood').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  const moodVal = moodLogs.length > 0 ? `${moodLogs[0].quantity}/5` : '—';
+  const moodLogs = logs
+    .filter(log => log.type === 'mood' && isValidUserEnergyLevel(log.quantity))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const moodVal = moodLogs.length > 0 ? `${moodLogs[0].quantity}/5` : '--';
 
   const metrics = [
     { label: 'WATER', value: waterMl ? `${waterMl}ml` : '0ml' },

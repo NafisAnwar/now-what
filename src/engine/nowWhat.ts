@@ -1,7 +1,7 @@
 import { db } from '../data/db';
 import { hasReviewableActivity, isDailyReviewIncomplete } from '../data/review';
 import { getCalendarBlocksForDate } from '../data/calendar';
-import { getOrCreateNeedsProfile } from '../data/needsProfile';
+import { getOrCreateNeedsProfile, isValidUserEnergyLevel } from '../data/needsProfile';
 import { MICRO_ACTIONS, getMicroActionById } from './microActions';
 import {
   getCriticalSupportText,
@@ -474,7 +474,9 @@ export async function getCurrentContext(): Promise<Context> {
   const restMinutesToday = todaysLogs.filter(log => log.type === 'rest').reduce((acc, log) => acc + (log.durationMinutes || 0), 0);
   const movementMinutesToday = todaysLogs.filter(log => log.type === 'exercise').reduce((acc, log) => acc + (log.durationMinutes || 0), 0);
   const distractionMinutesToday = todaysLogs.filter(log => log.type === 'distraction').reduce((acc, log) => acc + (log.durationMinutes || 0), 0);
-  const moodLogs = todaysLogs.filter(l => l.type === 'mood').sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const moodLogs = todaysLogs
+    .filter(log => log.type === 'mood' && isValidUserEnergyLevel(log.quantity))
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const lastMoodValue = moodLogs.length > 0 ? (moodLogs[0].quantity ?? null) : null;
 
   const allWaterLogs = await db.activityLogs.where('type').equals('water').toArray();
@@ -488,7 +490,7 @@ export async function getCurrentContext(): Promise<Context> {
     .reverse()
     .find(log => {
       const value = log.type === 'state_check' ? log.energyLevel : log.quantity;
-      return typeof value === 'number' && Number.isFinite(value);
+      return isValidUserEnergyLevel(value);
     });
   const lastEnergyValue = latestEnergyLog
     ? (latestEnergyLog.type === 'state_check' ? latestEnergyLog.energyLevel ?? null : latestEnergyLog.quantity ?? null)

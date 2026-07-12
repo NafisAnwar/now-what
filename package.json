@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "qa:v1.2": "node scripts/v12-engine-qa.mjs"
   },
   "dependencies": {
     "dexie": "^4.4.4",

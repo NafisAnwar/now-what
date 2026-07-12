@@ -1,6 +1,6 @@
 import { db } from './db';
 import { PROFILE_SCHEMA_VERSION } from './db';
-import { getOrCreateNeedsProfile } from './needsProfile';
+import { getOrCreateNeedsProfile, updateNeedsProfile } from './needsProfile';
 import { getActiveProfileRecord } from './profile';
 import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggestion, DailyReview, WeeklyReview, Settings, Reminder, NeedsProfile } from '../types';
 
@@ -61,6 +61,20 @@ export interface ImportSummary {
   settings: number;
   reminders: number;
   needsProfiles: number;
+}
+
+export function backupHasUserData(stores: NowWhatBackup['stores']): boolean {
+  return (
+    stores.tasks.length > 0 ||
+    stores.habits.length > 0 ||
+    stores.goals.length > 0 ||
+    stores.calendarBlocks.length > 0 ||
+    stores.activityLogs.length > 0 ||
+    stores.dailyPlans.length > 0 ||
+    stores.dailyReviews.length > 0 ||
+    stores.weeklyReviews.length > 0 ||
+    stores.reminders.length > 0
+  );
 }
 
 function normalizeBackupProfile(value: unknown, exportedAt: string): BackupProfile {
@@ -291,6 +305,12 @@ export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
   const { stores } = backup;
   const activeProfile = await getActiveProfileRecord();
   const importedAt = new Date().toISOString();
+  const hasImportedUserData = backupHasUserData(stores);
+  const importedTutorialHandled = stores.settings.some(setting => Boolean(
+    setting.tutorialPromptSeenAt ||
+    setting.tutorialCompletedAt ||
+    setting.tutorialDismissedAt
+  ));
   const settingsForActiveProfile = stores.settings.map(setting => ({
     ...setting,
     localProfileId: activeProfile?.id,
@@ -325,8 +345,22 @@ export async function restoreDatabase(backup: NowWhatBackup): Promise<void> {
     ]);
   });
 
-  await touchSettings({ lastImportAt: importedAt, localProfileId: activeProfile?.id });
-  await getOrCreateNeedsProfile(db);
+  await touchSettings({
+    lastImportAt: importedAt,
+    localProfileId: activeProfile?.id,
+    ...(hasImportedUserData && !importedTutorialHandled
+      ? { tutorialPromptSeenAt: importedAt, tutorialDismissedAt: importedAt }
+      : {}),
+  });
+  const restoredNeedsProfile = await getOrCreateNeedsProfile(db);
+  if (
+    hasImportedUserData &&
+    stores.needsProfiles.length === 0 &&
+    !restoredNeedsProfile.onboardingCompletedAt &&
+    !restoredNeedsProfile.onboardingDismissedAt
+  ) {
+    await updateNeedsProfile({ onboardingDismissedAt: importedAt }, db);
+  }
 }
 
 // ── Clear ────────────────────────────────────────────────────────────────────

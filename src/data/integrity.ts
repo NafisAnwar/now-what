@@ -1,6 +1,7 @@
 import { db } from './db';
 import {
   getOrCreateNeedsProfile,
+  isValidUserEnergyLevel,
   isValidQuietHour,
   NEEDS_PROFILE_ID,
   VALID_LOW_ENERGY_PREFERENCES,
@@ -159,6 +160,14 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
   // ── Goal link integrity ──────────────────────────────────────────────────
 
   for (const task of tasks) {
+    if (!['low', 'medium', 'high'].includes(task.energyRequired)) {
+      issues.push({
+        type: 'error',
+        store: 'tasks',
+        id: task.id,
+        message: `Task "${task.title}" has an invalid energyRequired value.`,
+      });
+    }
     if (task.goalId && !goalIds.has(task.goalId)) {
       issues.push({
         type: 'warning', store: 'tasks', id: task.id,
@@ -396,6 +405,14 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
           message: 'State Check log is missing a valid Energy Level from 1 to 5.',
         });
       }
+    }
+    if ((log.type === 'energy' || log.type === 'mood') && !isValidUserEnergyLevel(log.quantity)) {
+      issues.push({
+        type: 'error',
+        store: 'activityLogs',
+        id: log.id,
+        message: `${log.type === 'energy' ? 'Energy' : 'Mood'} log must have a value from 1 to 5.`,
+      });
     }
   }
 
