@@ -4,7 +4,7 @@ Thank you for testing NOW_WHAT?. This beta is a local-first PWA: it has no accou
 
 ## Before testing
 
-- Use the provided `pages.dev` address in a normal browser window.
+- Use the provided `workers.dev` address in a normal browser window.
 - Continue using the same browser, device, and hostname during the test.
 - Do not use private or incognito mode for ongoing testing.
 - Do not enter information you would be uncomfortable storing on that device.
