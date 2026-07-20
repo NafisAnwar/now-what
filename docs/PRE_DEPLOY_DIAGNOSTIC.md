@@ -51,7 +51,7 @@ The build emits one non-blocking warning: the main JavaScript chunk is approxima
 19. Preserved and focused a recommendation's target task after navigation to Tasks.
 20. Stopped suppressing the browser's native PWA install flow when no custom install button is rendered.
 21. Prevented the service worker from unregistering itself on localhost preview, deleting unrelated origin caches, or reading from other cache namespaces.
-22. Added a Cloudflare static-host SPA fallback through `public/_redirects`.
+22. Added SPA fallback routing for static hosting.
 23. Strengthened backup structure validation before destructive restore and expanded integrity checks for invalid timestamps and durations.
 24. Added route-level render recovery and improved shared modal dialog semantics, viewport bounds, backdrop close, and visible focus behavior.
 25. Added mobile wrapping for task, habit, reminder, Quick Log, and form-grid layouts; date-sensitive views now roll over at local midnight.

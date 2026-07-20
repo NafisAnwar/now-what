@@ -222,7 +222,11 @@ try {
     'END:VCALENDAR',
   ].join('\r\n'));
   assert.equal(invalidIcs.events.length, 0);
-  assert.match(await readFile(new URL('../public/_redirects', import.meta.url), 'utf8'), /\/\* \/index\.html 200/);
+  const wranglerConfig = JSON.parse(await readFile(new URL('../wrangler.jsonc', import.meta.url), 'utf8'));
+  assert.deepEqual(wranglerConfig.assets, {
+    directory: './dist',
+    not_found_handling: 'single-page-application',
+  });
 
   const legacyHabitMarkup = renderToStaticMarkup(React.createElement(habitModal.default, {
     habit: {

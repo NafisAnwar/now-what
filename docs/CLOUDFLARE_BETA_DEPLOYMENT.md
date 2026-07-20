@@ -28,7 +28,7 @@ Use `now-what-app` exactly as the permanent Worker name. The dashboard name must
 7. Leave Access, Web Analytics, Worker scripts, KV, D1, R2, bindings, secrets, custom domains, and paid add-ons disabled.
 8. Deploy and retain the build log if any command fails.
 
-The repository pins Node in `.nvmrc` and Wrangler in `package.json`. `wrangler.jsonc` deploys `dist` as static assets and enables SPA fallback without a Worker script. The existing `public/_redirects` supplies an additional SPA rewrite, while `public/_headers` supplies security, cache, and beta no-index rules.
+The repository pins Node in `.nvmrc` and Wrangler in `package.json`. `wrangler.jsonc` deploys `dist` as static assets and enables SPA fallback without a Worker script. `public/_headers` supplies security, cache, and beta no-index rules.
 
 ## Release gate
 
