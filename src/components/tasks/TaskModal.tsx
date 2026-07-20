@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import Modal from '../ui/Modal';
 import { db } from '../../data/db';
@@ -20,39 +20,56 @@ export default function TaskModal({ onClose, onSaved }: Props) {
   const [notes, setNotes] = useState('');
   const [repeat, setRepeat] = useState<Task['repeatRule']['type']>('none');
   const [goalId, setGoalId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const activeGoals = useLiveQuery(() => db.goals.where('status').equals('active').toArray(), []) || [];
   const goalOptions = Array.from(new Map(activeGoals.map(goal => [goal.id, goal])).values());
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || savingRef.current) return;
 
-    const now = new Date().toISOString();
-    
-    const task: Task = {
-      id: crypto.randomUUID(),
-      title: title.trim(),
-      category,
-      priority,
-      status: 'pending',
-      estimatedMinutes: minutes ? parseInt(minutes, 10) : undefined,
-      dueDate: dueDate || undefined,
-      energyRequired: energy,
-      repeatRule: { type: repeat },
-      notes: notes || undefined,
-      goalId: goalId || undefined,
-      missedCount: 0,
-      carryOverHistory: [],
-      createdAt: now,
-      updatedAt: now
-    };
+    const estimatedMinutes = minutes ? Number(minutes) : undefined;
+    if (estimatedMinutes !== undefined && (!Number.isInteger(estimatedMinutes) || estimatedMinutes < 1)) {
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Estimated minutes must be a positive whole number.' }));
+      return;
+    }
 
-    await db.tasks.add(task);
-    await onSaved?.(task);
+    savingRef.current = true;
+    setSaving(true);
 
-    window.dispatchEvent(new Event('regenerate_now_what'));
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task added.' }));
-    onClose();
+    try {
+      const now = new Date().toISOString();
+      const task: Task = {
+        id: crypto.randomUUID(),
+        title: title.trim(),
+        category,
+        priority,
+        status: 'pending',
+        estimatedMinutes,
+        dueDate: dueDate || undefined,
+        energyRequired: energy,
+        repeatRule: { type: repeat },
+        notes: notes.trim() || undefined,
+        goalId: goalId || undefined,
+        missedCount: 0,
+        carryOverHistory: [],
+        createdAt: now,
+        updatedAt: now
+      };
+
+      await db.tasks.add(task);
+      await onSaved?.(task);
+      window.dispatchEvent(new Event('regenerate_now_what'));
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task added.' }));
+      onClose();
+    } catch (error) {
+      console.error('[tasks] save failed:', error);
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task could not be saved.' }));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const inputStyle = {
@@ -74,7 +91,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
   };
 
   return (
-    <Modal onClose={onClose}>
+    <Modal onClose={onClose} ariaLabel="New task">
       <form onSubmit={handleSave}>
         <div className="label" style={{ marginBottom: '8px' }}>TITLE *</div>
         <input 
@@ -85,7 +102,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
           required 
         />
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>CATEGORY</div>
             <select style={inputStyle} value={category} onChange={e => setCategory(e.target.value)}>
@@ -107,7 +124,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>ENERGY</div>
             <select style={inputStyle} value={energy} onChange={e => setEnergy(e.target.value as Task['energyRequired'])}>
@@ -129,7 +146,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+        <div className="modal-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
           <div>
             <div className="label" style={{ marginBottom: '8px' }}>DUE DATE</div>
             <input 
@@ -146,7 +163,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
               <option value="daily">DAILY</option>
               <option value="weekly">WEEKLY</option>
             </select>
-            <div className="mono" style={helperStyle}>Repeats create future task context.</div>
+            <div className="mono" style={helperStyle}>Stored as recurrence context; future tasks are not created automatically.</div>
           </div>
         </div>
 
@@ -184,6 +201,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
           </button>
           <button 
             type="submit" 
+            disabled={!title.trim() || saving}
             className="mono"
             style={{
               background: 'var(--primary)',
@@ -193,7 +211,7 @@ export default function TaskModal({ onClose, onSaved }: Props) {
               cursor: 'pointer'
             }}
           >
-            [SAVE]
+            {saving ? '[SAVING...]' : '[SAVE]'}
           </button>
         </div>
       </form>

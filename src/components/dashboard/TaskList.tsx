@@ -3,6 +3,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import TaskRow from '../tasks/TaskRow';
 import { Task } from '../../types';
+import { completeTask } from '../../data/completions';
 
 export default function TaskList() {
   const tasks = useLiveQuery(
@@ -12,19 +13,8 @@ export default function TaskList() {
   if (!tasks) return <div className="mono label">LOADING...</div>;
 
   const handleComplete = async (task: Task) => {
-    await db.tasks.update(task.id, { 
-      status: 'complete', 
-      completedAt: new Date().toISOString() 
-    });
-    
-    await db.activityLogs.add({
-      id: crypto.randomUUID(),
-      type: 'task_completed',
-      label: task.title,
-      relatedTaskId: task.id,
-      createdAt: new Date().toISOString()
-    });
-
+    const completed = await completeTask(task.id);
+    if (!completed) return;
     window.dispatchEvent(new Event('regenerate_now_what'));
     window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task completed.' }));
   };

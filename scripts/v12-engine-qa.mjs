@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { createServer } from 'vite';
@@ -120,20 +121,20 @@ function fakeTable(records = []) {
   return { toArray: async () => records };
 }
 
-function makeIntegrityDb({ tasks = [], activityLogs = [], needsProfiles = [] } = {}) {
+function makeIntegrityDb({ tasks = [], habits = [], calendarBlocks = [], activityLogs = [], reminders = [], needsProfiles = [] } = {}) {
   return {
     close: () => undefined,
     tasks: fakeTable(tasks),
-    habits: fakeTable(),
+    habits: fakeTable(habits),
     goals: fakeTable(),
-    calendarBlocks: fakeTable(),
+    calendarBlocks: fakeTable(calendarBlocks),
     activityLogs: fakeTable(activityLogs),
     dailyPlans: fakeTable(),
     dailyReviews: fakeTable(),
     weeklyReviews: fakeTable(),
     settings: fakeTable(),
     suggestions: fakeTable(),
-    reminders: fakeTable(),
+    reminders: fakeTable(reminders),
     needsProfiles: fakeTable(needsProfiles),
   };
 }
@@ -150,6 +151,11 @@ try {
   const debugPanel = await server.ssrLoadModule('/src/components/debug/EngineDebugPanel.tsx');
   const dbModule = await server.ssrLoadModule('/src/data/db.ts');
   const integrity = await server.ssrLoadModule('/src/data/integrity.ts');
+  const completions = await server.ssrLoadModule('/src/data/completions.ts');
+  const quickLog = await server.ssrLoadModule('/src/components/quicklog/QuickLogModal.tsx');
+  const reminders = await server.ssrLoadModule('/src/data/reminders.ts');
+  const calendar = await server.ssrLoadModule('/src/data/calendar.ts');
+  const ics = await server.ssrLoadModule('/src/data/ics.ts');
 
   assert.equal(scoring.getUserEnergyBand(1), 'low');
   assert.equal(scoring.getUserEnergyBand(3), 'neutral');
@@ -171,6 +177,52 @@ try {
   assert.equal(new Set(categories.HABIT_CATEGORY_OPTIONS).size, categories.HABIT_CATEGORY_OPTIONS.length);
   assert.equal(new Set(categories.GOAL_CATEGORY_OPTIONS).size, categories.GOAL_CATEGORY_OPTIONS.length);
   assert.equal(categories.TASK_CATEGORY_OPTIONS.includes(categories.CUSTOM_CATEGORY_OPTION), false);
+  assert.equal(completions.isValidHabitCompletionValue('boolean', undefined), true);
+  assert.equal(completions.isValidHabitCompletionValue('quantity', 1.5), true);
+  assert.equal(completions.isValidHabitCompletionValue('time', 1.5), false);
+  assert.equal(completions.isValidHabitCompletionValue('count', 0), false);
+  assert.equal(quickLog.isValidDurationMinutes(1), true);
+  assert.equal(quickLog.isValidDurationMinutes(0), false);
+  assert.equal(quickLog.isValidDurationMinutes(1.5), false);
+
+  const afterMidnightDefault = reminders.getDefaultManualReminderDateTime(new Date(2026, 6, 12, 23, 30));
+  assert.deepEqual(afterMidnightDefault, { date: '2026-07-13', time: '00:30' });
+  assert.equal(reminders.parseManualReminderDateTime('2026-02-30', '10:00'), null);
+  assert.ok(reminders.parseManualReminderDateTime('2026-07-13', '10:00') instanceof Date);
+  assert.equal(reminders.hasReminderGeneratingUserContext(0, 0, 0, 0), false);
+  assert.equal(reminders.hasReminderGeneratingUserContext(0, 0, 0, 1), true);
+
+  const multiDayBlock = {
+    startAt: '2026-07-12T00:00:00',
+    endAt: '2026-07-13T00:00:00',
+  };
+  assert.equal(calendar.calendarBlockOverlapsDate(multiDayBlock, '2026-07-12'), true);
+  assert.equal(calendar.calendarBlockOverlapsDate(multiDayBlock, '2026-07-13'), false);
+  assert.equal(calendar.isAllDayCalendarBlock(multiDayBlock), true);
+  assert.equal(calendar.validateManualCalendarBlockInput({ title: 'Block', date: '2026-02-30' }), 'Calendar block date is invalid.');
+
+  const allDayIcs = ics.parseIcsVevents([
+    'BEGIN:VCALENDAR',
+    'BEGIN:VEVENT',
+    'UID:all-day-qa',
+    'DTSTART;VALUE=DATE:20260712',
+    'DTEND;VALUE=DATE:20260713',
+    'SUMMARY:All day QA',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n'));
+  assert.equal(allDayIcs.events.length, 1);
+  assert.equal(calendar.isAllDayCalendarBlock(allDayIcs.events[0]), true);
+  const invalidIcs = ics.parseIcsVevents([
+    'BEGIN:VCALENDAR',
+    'BEGIN:VEVENT',
+    'DTSTART:20260230T090000',
+    'SUMMARY:Invalid date',
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n'));
+  assert.equal(invalidIcs.events.length, 0);
+  assert.match(await readFile(new URL('../public/_redirects', import.meta.url), 'utf8'), /\/\* \/index\.html 200/);
 
   const legacyHabitMarkup = renderToStaticMarkup(React.createElement(habitModal.default, {
     habit: {
@@ -436,6 +488,35 @@ try {
   legacyBackup.schemaVersion = 2;
   delete legacyBackup.stores.needsProfiles;
   assert.equal(exportImport.validateBackup(legacyBackup).valid, true);
+  const invalidBackup = structuredClone(backup);
+  invalidBackup.stores.tasks.push({ id: 'broken-task', title: 'Broken' });
+  assert.equal(exportImport.validateBackup(invalidBackup).valid, false);
+  const missedTaskBackup = structuredClone(backup);
+  missedTaskBackup.stores.tasks.push(makeTask({ id: 'missed-task', status: 'missed' }));
+  assert.equal(exportImport.validateBackup(missedTaskBackup).valid, true);
+  const weeklyReviewBackup = structuredClone(backup);
+  weeklyReviewBackup.stores.weeklyReviews.push({
+    id: 'weekly-review',
+    weekStart: '2026-07-06',
+    weekEnd: '2026-07-12',
+    completedTaskCount: 0,
+    missedTaskCount: 0,
+    completedHabitCount: 0,
+    focusMinutes: 0,
+    distractionMinutes: 0,
+    restMinutes: 0,
+    movementMinutes: 0,
+    waterMl: 0,
+    mealsLogged: 0,
+    mostConsistentHabits: [],
+    mostMissedHabits: [],
+    repeatedMissedTaskTitles: [],
+    goalProgressNotes: [],
+    generatedSummary: 'No activity.',
+    createdAt: '2026-07-12T20:00:00.000Z',
+    updatedAt: '2026-07-12T20:00:00.000Z',
+  });
+  assert.equal(exportImport.validateBackup(weeklyReviewBackup).valid, true);
 
   const debugCandidate = scoring.scoreCandidate(taskCandidate(lowTask), lowEnergyContext);
   const debugSuggestion = {
@@ -498,7 +579,18 @@ try {
   assert.ok(invalidIntegrityReport.issues.some(issue => issue.message.includes('invalid energyRequired')));
   assert.ok(invalidIntegrityReport.issues.some(issue => issue.message.includes('value from 1 to 5')));
 
-  console.log('v1.2 engine QA: 77 assertions passed');
+  dbModule.setActiveDb(makeIntegrityDb({
+    calendarBlocks: [{ id: 'bad-block', title: 'Bad block', startAt: 'not-a-date', endAt: 'also-bad', convertedTaskIds: [] }],
+    activityLogs: [{ id: 'bad-focus', type: 'focus', label: 'Bad focus', durationMinutes: 0, createdAt: 'not-a-date' }],
+    reminders: [{ id: 'bad-reminder', type: 'manual', title: 'Bad reminder', status: 'scheduled', enabled: true, scheduledAt: 'not-a-date' }],
+    needsProfiles: [validProfile],
+  }));
+  const malformedIntegrityReport = await integrity.runIntegrityChecks();
+  assert.ok(malformedIntegrityReport.issues.some(issue => issue.message.includes('invalid start or end time')));
+  assert.ok(malformedIntegrityReport.issues.some(issue => issue.message.includes('positive whole-minute duration')));
+  assert.ok(malformedIntegrityReport.issues.some(issue => issue.message.includes('invalid scheduledAt')));
+
+  console.log('v1.2 engine QA: 103 assertions passed');
 } finally {
   await server.close();
 }

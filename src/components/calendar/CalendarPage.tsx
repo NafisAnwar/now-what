@@ -1,14 +1,14 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import type { CalendarBlock } from '../../types';
 import CalendarBlockRow from './CalendarBlockRow';
 import CalendarBlockModal from './CalendarBlockModal';
-import { CalendarImportError, importIcsFile } from '../../data/calendar';
-import { getTodayStr, isLocalDate, localDateFromTimestamp, localDateStr } from '../../utils/dateUtils';
+import { CalendarImportError, calendarBlockOverlapsDate, importIcsFile } from '../../data/calendar';
+import { localDateFromTimestamp, localDateStr, useTodayStr } from '../../utils/dateUtils';
 
 export default function CalendarPage() {
-  const todayStr = getTodayStr();
+  const todayStr = useTodayStr();
   const allBlocks = useLiveQuery(() => db.calendarBlocks.orderBy('startAt').toArray(), []) || [];
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -16,23 +16,29 @@ export default function CalendarPage() {
   const [icsError, setIcsError] = useState('');
   const [icsSuccess, setIcsSuccess] = useState('');
   const [showPast, setShowPast] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const importingRef = useRef(false);
 
   const nowMs = Date.now();
   const in14Days = localDateStr(new Date(nowMs + 14 * 24 * 60 * 60 * 1000));
 
-  const todayBlocks = allBlocks.filter(block => isLocalDate(block.startAt, todayStr));
+  const todayBlocks = allBlocks.filter(block => calendarBlockOverlapsDate(block, todayStr));
   const upcomingBlocks = allBlocks.filter(block => {
     const blockDate = localDateFromTimestamp(block.startAt);
     return blockDate > todayStr && blockDate <= in14Days;
   });
-  const pastBlocks = allBlocks.filter(block => localDateFromTimestamp(block.startAt) < todayStr);
+  const pastBlocks = allBlocks.filter(block => (
+    !calendarBlockOverlapsDate(block, todayStr) && localDateFromTimestamp(block.endAt) <= todayStr
+  ));
 
   const isActive = (block: CalendarBlock) =>
-    nowMs >= new Date(block.startAt).getTime() && nowMs <= new Date(block.endAt).getTime();
+    nowMs >= new Date(block.startAt).getTime() && nowMs < new Date(block.endAt).getTime();
 
   const handleIcsImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
+    if (!file || importingRef.current) return;
+    importingRef.current = true;
+    setIsImporting(true);
     setIcsError('');
     setIcsSuccess('');
 
@@ -45,9 +51,11 @@ export default function CalendarPage() {
       );
     } catch (err) {
       setIcsError(err instanceof CalendarImportError ? err.message : 'Could not import calendar file.');
+    } finally {
+      importingRef.current = false;
+      setIsImporting(false);
+      e.target.value = '';
     }
-
-    e.target.value = '';
   };
 
   const openEdit = (block: CalendarBlock) => {
@@ -183,10 +191,11 @@ export default function CalendarPage() {
           type="file"
           accept=".ics"
           onChange={handleIcsImport}
+          disabled={isImporting}
           className="visually-hidden-file"
         />
-        <label htmlFor="calendar-ics-import" className="mono file-trigger">
-          [SELECT .ICS FILE]
+        <label htmlFor="calendar-ics-import" className="mono file-trigger" aria-disabled={isImporting}>
+          {isImporting ? '[IMPORTING...]' : '[SELECT .ICS FILE]'}
         </label>
         {icsError && (
           <div className="mono" style={{ color: 'var(--error)', fontSize: '11px', marginTop: '8px' }}>

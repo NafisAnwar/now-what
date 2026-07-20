@@ -816,6 +816,58 @@ body::before {
   .engine-debug-grid {
     grid-template-columns: 1fr;
   }
+
+  .habit-row {
+    align-items: flex-start !important;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .habit-row-main,
+  .habit-row-actions {
+    width: 100%;
+  }
+
+  .habit-row-actions {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 10px !important;
+  }
+
+  .task-row {
+    align-items: flex-start !important;
+    flex-wrap: wrap;
+  }
+
+  .task-row-main {
+    flex-basis: calc(100% - 28px);
+  }
+
+  .task-row-details {
+    width: calc(100% - 28px);
+    margin-top: 6px;
+    margin-left: 28px;
+    flex-wrap: wrap;
+  }
+
+  .reminder-tray-row {
+    align-items: flex-start !important;
+    flex-direction: column;
+  }
+
+  .reminder-tray-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .modal-form-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+
+  .quick-log-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
 }
 
 /* ── Modal responsive ────────────────────────────────────────────────────── */
@@ -825,6 +877,12 @@ body::before {
   .modal-overlay {
     padding: 0 !important;
     align-items: flex-end !important;
+  }
+
+  .modal-overlay > [role="dialog"] {
+    max-width: 100% !important;
+    max-height: calc(100dvh - 12px) !important;
+    padding: 20px !important;
   }
 }
 

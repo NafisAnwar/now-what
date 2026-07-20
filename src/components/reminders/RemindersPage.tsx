@@ -1,25 +1,32 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import type { Reminder } from '../../types';
 import ReminderRow from './ReminderRow';
 import ReminderSettingsPanel from './ReminderSettingsPanel';
-import { cancelReminder, completeReminder, createManualReminder, dismissReminder } from '../../data/reminders';
-import { getTodayStr } from '../../utils/dateUtils';
+import {
+  cancelReminder,
+  completeReminder,
+  createManualReminder,
+  dismissReminder,
+  getDefaultManualReminderDateTime,
+} from '../../data/reminders';
+import { useTodayStr } from '../../utils/dateUtils';
 
 type Tab = 'SCHEDULED' | 'SENT' | 'DISMISSED' | 'SETTINGS';
 
 export default function RemindersPage() {
+  const todayStr = useTodayStr();
   const [tab, setTab] = useState<Tab>('SCHEDULED');
   const [showForm, setShowForm] = useState(false);
+  const [initialReminderDefaults] = useState(getDefaultManualReminderDateTime);
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState(getTodayStr());
-  const [time, setTime] = useState(() => {
-    const next = new Date(Date.now() + 60 * 60 * 1000);
-    return `${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`;
-  });
+  const [date, setDate] = useState(initialReminderDefaults.date);
+  const [time, setTime] = useState(initialReminderDefaults.time);
   const [note, setNote] = useState('');
   const [formError, setFormError] = useState('');
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
 
   const allReminders = useLiveQuery(() => db.reminders.toArray() as Promise<Reminder[]>, []) ?? [];
 
@@ -37,16 +44,19 @@ export default function RemindersPage() {
   };
 
   const resetForm = () => {
+    const defaults = getDefaultManualReminderDateTime();
     setTitle('');
-    setDate(getTodayStr());
-    const next = new Date(Date.now() + 60 * 60 * 1000);
-    setTime(`${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`);
+    setDate(defaults.date);
+    setTime(defaults.time);
     setNote('');
     setFormError('');
   };
 
   const handleCreateReminder = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
     setFormError('');
     try {
       await createManualReminder({ title, date, time, note });
@@ -56,6 +66,9 @@ export default function RemindersPage() {
       window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Reminder added.' }));
     } catch (err) {
       setFormError(err instanceof Error ? err.message : 'Could not add reminder.');
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
     }
   };
 
@@ -102,27 +115,29 @@ export default function RemindersPage() {
         >
           <div className="mono label" style={{ marginBottom: '12px' }}>NEW REMINDER</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px' }}>
-            <div>
-              <div className="label" style={{ marginBottom: '6px' }}>TITLE</div>
+            <label>
+              <span className="label" style={{ display: 'block', marginBottom: '6px' }}>TITLE</span>
               <input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 style={formInputStyle}
                 required
+                autoFocus
               />
-            </div>
-            <div>
-              <div className="label" style={{ marginBottom: '6px' }}>DATE</div>
+            </label>
+            <label>
+              <span className="label" style={{ display: 'block', marginBottom: '6px' }}>DATE</span>
               <input
                 type="date"
+                min={todayStr}
                 value={date}
                 onChange={e => setDate(e.target.value)}
                 style={formInputStyle}
                 required
               />
-            </div>
-            <div>
-              <div className="label" style={{ marginBottom: '6px' }}>TIME</div>
+            </label>
+            <label>
+              <span className="label" style={{ display: 'block', marginBottom: '6px' }}>TIME</span>
               <input
                 type="time"
                 value={time}
@@ -130,16 +145,16 @@ export default function RemindersPage() {
                 style={formInputStyle}
                 required
               />
-            </div>
+            </label>
           </div>
-          <div style={{ marginTop: '12px' }}>
-            <div className="label" style={{ marginBottom: '6px' }}>NOTE</div>
+          <label style={{ display: 'block', marginTop: '12px' }}>
+            <span className="label" style={{ display: 'block', marginBottom: '6px' }}>NOTE</span>
             <textarea
               value={note}
               onChange={e => setNote(e.target.value)}
               style={{ ...formInputStyle, minHeight: '64px', resize: 'vertical' }}
             />
-          </div>
+          </label>
           {formError && (
             <div className="mono" style={{ color: 'var(--error)', fontSize: '11px', marginTop: '8px' }}>
               {formError}
@@ -152,6 +167,7 @@ export default function RemindersPage() {
                 resetForm();
                 setShowForm(false);
               }}
+              disabled={saving}
               className="mono"
               style={{
                 background: 'transparent',
@@ -166,6 +182,7 @@ export default function RemindersPage() {
             </button>
             <button
               type="submit"
+              disabled={saving || !title.trim() || !date || !time}
               className="mono"
               style={{
                 background: 'var(--surface2)',
@@ -176,17 +193,20 @@ export default function RemindersPage() {
                 cursor: 'pointer',
               }}
             >
-              [SAVE]
+              {saving ? '[SAVING...]' : '[SAVE]'}
             </button>
           </div>
         </form>
       )}
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)', marginBottom: '20px', overflowX: 'auto' }}>
+      <div role="tablist" aria-label="Reminder views" style={{ display: 'flex', gap: '0', borderBottom: '1px solid var(--border)', marginBottom: '20px', overflowX: 'auto' }}>
         {tabs.map(t => (
           <button
             key={t}
+            type="button"
+            role="tab"
+            aria-selected={tab === t}
             onClick={() => setTab(t)}
             className="mono"
             style={{
@@ -215,7 +235,7 @@ export default function RemindersPage() {
           ) : (
             scheduled
               .slice()
-              .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt))
+              .sort((a, b) => a.scheduledAt.localeCompare(b.scheduledAt))
               .map(r => (
                 <ReminderRow
                   key={r.id}

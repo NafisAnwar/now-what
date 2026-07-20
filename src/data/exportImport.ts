@@ -106,6 +106,52 @@ function normalizeBackupProfile(value: unknown, exportedAt: string): BackupProfi
   };
 }
 
+function isValidStoredDate(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > 0 && Number.isFinite(new Date(value).getTime());
+}
+
+function isStructurallyValidRecord(store: typeof STORE_NAMES[number], item: Record<string, unknown>): boolean {
+  switch (store) {
+    case 'tasks':
+      return typeof item.title === 'string' &&
+        ['pending', 'complete', 'skipped', 'missed'].includes(String(item.status)) &&
+        ['low', 'medium', 'high'].includes(String(item.energyRequired));
+    case 'habits':
+      return typeof item.name === 'string' &&
+        ['boolean', 'quantity', 'time', 'count'].includes(String(item.completionType)) &&
+        (item.completionHistory === undefined || Array.isArray(item.completionHistory));
+    case 'goals':
+      return typeof item.title === 'string' && ['active', 'paused', 'complete'].includes(String(item.status));
+    case 'calendarBlocks': {
+      const start = typeof item.startAt === 'string' ? new Date(item.startAt).getTime() : Number.NaN;
+      const end = typeof item.endAt === 'string' ? new Date(item.endAt).getTime() : Number.NaN;
+      return typeof item.title === 'string' && Number.isFinite(start) && Number.isFinite(end) && end >= start;
+    }
+    case 'activityLogs':
+      return typeof item.type === 'string' && typeof item.label === 'string' && isValidStoredDate(item.createdAt) &&
+        (item.durationMinutes === undefined || (
+          typeof item.durationMinutes === 'number' && Number.isInteger(item.durationMinutes) && item.durationMinutes > 0
+        ));
+    case 'dailyPlans':
+      return typeof item.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.date);
+    case 'dailyReviews':
+      return typeof item.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.date);
+    case 'weeklyReviews':
+      return typeof item.weekStart === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.weekStart) &&
+        typeof item.weekEnd === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(item.weekEnd);
+    case 'suggestions':
+      return typeof item.status === 'string' && typeof item.actionType === 'string' && isValidStoredDate(item.createdAt);
+    case 'settings':
+      return item.schemaVersion === undefined || typeof item.schemaVersion === 'number';
+    case 'reminders':
+      return typeof item.title === 'string' && typeof item.status === 'string' && isValidStoredDate(item.scheduledAt);
+    case 'needsProfiles':
+      return Array.isArray(item.selectedNeeds) && typeof item.checkInIntervalHours === 'number';
+    default:
+      return false;
+  }
+}
+
 // ── Settings helpers ────────────────────────────────────────────────────────
 
 async function getOrCreateSettings(): Promise<Settings> {
@@ -249,6 +295,9 @@ export function validateBackup(data: unknown): ValidationResult {
         return { valid: false, reason: `Backup has invalid records in the ${name} store.` };
       }
       const id = (item as { id: string }).id;
+      if (!isStructurallyValidRecord(name, item as Record<string, unknown>)) {
+        return { valid: false, reason: `Backup has invalid records in the ${name} store.` };
+      }
       if (ids.has(id)) {
         return { valid: false, reason: `Backup has duplicate IDs in the ${name} store.` };
       }

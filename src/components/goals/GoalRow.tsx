@@ -22,7 +22,7 @@ export default function GoalRow({ goal, allTasks, habits, todayStr, onEdit }: Pr
 
   const linkedHabits = habits.filter(h => (goal.linkedHabitIds || []).includes(h.id));
   const completedLinkedHabitsToday = linkedHabits.filter(
-    h => h.completionHistory.some(c => c.date === todayStr)
+    h => (h.completionHistory || []).some(c => c.date === todayStr)
   ).length;
 
   const hasLinkedItems = linkedTasks.length > 0 || linkedHabits.length > 0;

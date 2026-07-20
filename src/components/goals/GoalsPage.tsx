@@ -4,7 +4,7 @@ import { db } from '../../data/db';
 import GoalRow from './GoalRow';
 import GoalModal from './GoalModal';
 import type { Goal } from '../../types';
-import { getTodayStr } from '../../utils/dateUtils';
+import { useTodayStr } from '../../utils/dateUtils';
 
 export default function GoalsPage() {
   const goals = useLiveQuery(() => db.goals.toArray(), []);
@@ -16,7 +16,7 @@ export default function GoalsPage() {
   const [editingGoal, setEditingGoal] = useState<Goal | undefined>(undefined);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const todayStr = getTodayStr();
+  const todayStr = useTodayStr();
 
   if (!goals) return null;
 

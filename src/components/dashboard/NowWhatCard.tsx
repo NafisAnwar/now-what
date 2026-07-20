@@ -8,8 +8,8 @@ import {
 } from '../../engine/nowWhat';
 import type { CandidateAction, Context } from '../../engine/nowWhat';
 import { db } from '../../data/db';
+import { completeHabit } from '../../data/completions';
 import type { RecommendationDeck, Suggestion } from '../../types';
-import { localDateStr } from '../../utils/dateUtils';
 
 const COMPUTING_MESSAGES = ['COMPUTING', 'SCANNING CONTEXT', 'RESOLVING NEXT ACTION'];
 
@@ -130,8 +130,11 @@ export default function NowWhatCard() {
   const [resolvingHeight, setResolvingHeight] = useState<number | null>(null);
   const cardRef = useRef<HTMLElement | null>(null);
   const generatingRef = useRef(false);
+  const actionInFlightRef = useRef(false);
+  const lastGeneratedAtRef = useRef(0);
 
   const applyEngineResult = useCallback((result: EngineResult) => {
+    lastGeneratedAtRef.current = Date.now();
     setDeck(result.deck);
     setContext(result.context);
     setDebugCandidates(result.candidates);
@@ -180,9 +183,12 @@ export default function NowWhatCard() {
     generate();
 
     const handleRegen = () => generate();
-    const handleFocus = () => generate(false);
+    const refreshIfStale = () => {
+      if (Date.now() - lastGeneratedAtRef.current >= 60_000) generate(false);
+    };
+    const handleFocus = () => refreshIfStale();
     const handleVisibility = () => {
-      if (!document.hidden) generate(false);
+      if (!document.hidden) refreshIfStale();
     };
     const interval = setInterval(() => generate(false), 5 * 60 * 1000);
 
@@ -200,7 +206,8 @@ export default function NowWhatCard() {
 
   const handleAccept = async () => {
     const activeSuggestion = deck?.primary;
-    if (!activeSuggestion) return;
+    if (!activeSuggestion || actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     const startedAt = beginResolving();
 
     try {
@@ -214,7 +221,7 @@ export default function NowWhatCard() {
         needsRegen = false;
       } else if (actionType === 'start_task') {
         window.dispatchEvent(new CustomEvent('focus_task', { detail: { taskId: targetId } }));
-        showToast('Task started. Find it in your task list.');
+        showToast('Task opened in the task list.');
         needsRegen = false;
       } else if (
         actionType === 'log_water' ||
@@ -228,25 +235,15 @@ export default function NowWhatCard() {
       } else if (actionType === 'complete_habit' && targetId) {
         const habit = await db.habits.get(targetId);
         if (habit) {
-          const now = new Date();
-          const todayStr = localDateStr(now);
-          if (!habit.completionHistory.some((completion: { date: string }) => completion.date === todayStr)) {
-            await db.habits.update(targetId, {
-              completionHistory: [
-                ...habit.completionHistory,
-                { date: todayStr, value: 1, completedAt: now.toISOString() },
-              ],
-            });
-            await db.activityLogs.add({
-              id: crypto.randomUUID(),
-              type: 'habit_completed',
-              label: `Habit: ${habit.name}`,
-              relatedHabitId: habit.id,
-              createdAt: now.toISOString(),
-            });
+          if (habit.completionType === 'boolean') {
+            await completeHabit(habit.id);
+            await completeSuggestion(activeSuggestion.id);
+            showToast(`Habit "${habit.name}" marked complete.`);
+          } else {
+            window.dispatchEvent(new Event('navigate_habits'));
+            showToast(`Open "${habit.name}" to log its value.`);
+            needsRegen = false;
           }
-          await completeSuggestion(activeSuggestion.id);
-          showToast(`Habit "${habit.name}" marked complete.`);
         }
       } else if (actionType === 'review_day') {
         window.dispatchEvent(new Event('navigate_review'));
@@ -257,8 +254,12 @@ export default function NowWhatCard() {
       } else if (actionType === 'plan_tomorrow') {
         window.dispatchEvent(new Event('navigate_dashboard'));
         needsRegen = false;
+      } else if (actionType === 'clear_state') {
+        showToast('No pending action.');
+        needsRegen = false;
       } else if (actionType === 'acknowledge_block') {
-        showToast('Block acknowledged.');
+        window.dispatchEvent(new Event('navigate_calendar'));
+        needsRegen = false;
       }
 
       if (needsRegen) {
@@ -270,12 +271,14 @@ export default function NowWhatCard() {
     } finally {
       await waitForResolvingFrame(startedAt);
       setLoading(false);
+      actionInFlightRef.current = false;
     }
   };
 
   const handleDismiss = async () => {
     const activeSuggestion = deck?.primary;
-    if (!activeSuggestion) return;
+    if (!activeSuggestion || actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     const startedAt = beginResolving();
 
     try {
@@ -287,11 +290,13 @@ export default function NowWhatCard() {
     } finally {
       await waitForResolvingFrame(startedAt);
       setLoading(false);
+      actionInFlightRef.current = false;
     }
   };
 
   const handleSelectAlternative = async (alternative: Suggestion) => {
-    if (!deck?.primary) return;
+    if (!deck?.primary || actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     const startedAt = beginResolving();
 
     try {
@@ -331,6 +336,7 @@ export default function NowWhatCard() {
     } finally {
       await waitForResolvingFrame(startedAt);
       setLoading(false);
+      actionInFlightRef.current = false;
     }
   };
 
@@ -354,6 +360,7 @@ export default function NowWhatCard() {
   if (!deck || !primary) return null;
 
   const noContextState = deck.state === 'no_context';
+  const emptyState = deck.state === 'empty';
   const cooldownState = deck.state === 'cooldown';
   const energySupport = getEnergySupport(context, primary);
   const pendingSupport = cooldownState && (deck.pendingCount ?? 0) > 0
@@ -414,6 +421,23 @@ export default function NowWhatCard() {
               [ADD HABIT]
             </button>
           </>
+        ) : emptyState ? (
+          <>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event('open_task_modal'))}
+              className="mono nowwhat-action-primary"
+            >
+              [ADD TASK]
+            </button>
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new Event('open_quick_log'))}
+              className="mono nowwhat-action-secondary"
+            >
+              [QUICK LOG]
+            </button>
+          </>
         ) : cooldownState ? (
           <>
             <button
@@ -439,7 +463,7 @@ export default function NowWhatCard() {
               className="mono nowwhat-action-primary"
               aria-label="Accept primary recommendation"
             >
-              [ACCEPT]
+              {primary.actionType === 'acknowledge_block' ? '[OPEN CALENDAR]' : '[ACCEPT]'}
             </button>
             <button
               type="button"

@@ -138,14 +138,15 @@ export default function TutorialPage() {
 
       <TutorialSection index="05" title="Tasks">
         <p>
-          Use Tasks for one-time or repeatable commitments with fields for title, priority,
-          category, energy requirement, estimate, due date/time, notes, repeat behavior,
+          Use Tasks for commitments with fields for title, priority,
+          category, energy requirement, estimate, due date, notes, recurrence context,
           and optional goal link.
         </p>
         <ul style={listStyle}>
           <li>Completing a task adds it to the Activity Timeline.</li>
           <li>Planned tasks are prioritized over unplanned tasks when urgency is similar.</li>
           <li>Goal-linked tasks can influence NOW_WHAT? reasoning.</li>
+          <li>Repeat settings are stored as context; this version does not create future task records automatically.</li>
         </ul>
       </TutorialSection>
 
@@ -187,7 +188,7 @@ export default function TutorialPage() {
 
       <TutorialSection index="09" title="Calendar">
         <ul style={listStyle}>
-          <li>Calendar blocks are read-only time context.</li>
+          <li>Calendar blocks are time context rather than completion records.</li>
           <li>Calendar blocks are not tasks and are not completed.</li>
           <li>Manual blocks and <span style={codeStyle}>.ics</span> import are supported.</li>
           <li>Imported blocks can be converted into tasks when action is required.</li>
@@ -209,9 +210,8 @@ export default function TutorialPage() {
 
       <TutorialSection index="11" title="Timeline">
         <p>
-          Timeline is the factual record of the day, including task completions,
-          habit completions, quick logs, calendar context, reminders/actions where applicable,
-          and notes.
+          Timeline is the factual activity record, including task completions,
+          habit completions, quick logs, state checks, and notes.
         </p>
         <ul style={listStyle}>
           <li>Rest = intentional recovery.</li>
@@ -268,7 +268,7 @@ export default function TutorialPage() {
         <ul style={listStyle}>
           <li>The app can work offline after first load.</li>
           <li>Install support exists through PWA behavior.</li>
-          <li>The visible install button may currently be hidden, but browser install may still be available.</li>
+          <li>Installation is offered through supported browser controls.</li>
           <li>Data remains local to the browser/device.</li>
         </ul>
       </TutorialSection>

@@ -1,16 +1,16 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
-import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
+import { isLocalDate, useTodayStr } from '../../utils/dateUtils';
 
 export default function GoalStrip() {
+  const todayStr = useTodayStr();
   const activeGoals = useLiveQuery(() => db.goals.where('status').equals('active').toArray(), []);
   const allTasks = useLiveQuery(() => db.tasks.toArray(), []);
   const allHabits = useLiveQuery(() => db.habits.toArray(), []);
 
   if (!activeGoals) return null;
 
-  const todayStr = getTodayStr();
   const MAX_VISIBLE = 4;
   const visibleGoals = activeGoals.slice(0, MAX_VISIBLE);
   const overflowCount = activeGoals.length - MAX_VISIBLE;
@@ -42,7 +42,7 @@ export default function GoalStrip() {
 
         const linkedHabits = (allHabits || []).filter(h => (goal.linkedHabitIds || []).includes(h.id));
         const completedLinkedHabitsToday = linkedHabits.filter(
-          h => h.completionHistory.some(c => c.date === todayStr)
+          h => (h.completionHistory || []).some(c => c.date === todayStr)
         ).length;
 
         const hasLinkedItems = linkedTasks.length > 0 || linkedHabits.length > 0;

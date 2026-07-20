@@ -531,7 +531,7 @@ export async function getCurrentContext(): Promise<Context> {
 
   const pendingHabitsInWindow = allHabits.filter(h => {
     if (h.frequency !== 'daily') return false;
-    if (h.completionHistory.some(c => c.date === todayStr)) return false;
+    if ((h.completionHistory || []).some(c => c.date === todayStr)) return false;
     if (h.timeWindowStart && h.timeWindowEnd) {
       return nowHHMM >= h.timeWindowStart && nowHHMM <= h.timeWindowEnd;
     }
@@ -539,7 +539,7 @@ export async function getCurrentContext(): Promise<Context> {
   });
 
   const pendingHabitsAny = allHabits.filter(
-    h => h.frequency === 'daily' && !h.completionHistory.some(c => c.date === todayStr)
+    h => h.frequency === 'daily' && !(h.completionHistory || []).some(c => c.date === todayStr)
   );
 
   const activeGoals = await db.goals.where('status').equals('active').toArray();

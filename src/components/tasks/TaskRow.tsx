@@ -5,7 +5,7 @@ export default function TaskRow({ task, onComplete, goalTitle }: { task: Task, o
   const isComplete = task.status === 'complete';
 
   return (
-    <div style={{
+    <div className="task-row" data-task-id={task.id} style={{
       display: 'flex',
       alignItems: 'center',
       padding: '8px 0',
@@ -15,6 +15,7 @@ export default function TaskRow({ task, onComplete, goalTitle }: { task: Task, o
       <button 
         onClick={onComplete}
         disabled={isComplete}
+        aria-label={isComplete ? `${task.title} completed` : `Complete ${task.title}`}
         style={{
           width: '16px',
           height: '16px',
@@ -25,7 +26,7 @@ export default function TaskRow({ task, onComplete, goalTitle }: { task: Task, o
           flexShrink: 0
         }}
       />
-      <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div className="task-row-main" style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0, flexWrap: 'wrap' }}>
         <span style={{ 
           color: isComplete ? 'var(--dim)' : 'var(--body)',
           textDecoration: isComplete ? 'line-through' : 'none',
@@ -48,9 +49,18 @@ export default function TaskRow({ task, onComplete, goalTitle }: { task: Task, o
           </span>
         )}
       </div>
-      {task.estimatedMinutes && (
-        <div className="mono" style={{ color: 'var(--dim)', fontSize: '12px' }}>
-          {task.estimatedMinutes}m
+      {(task.dueDate || task.estimatedMinutes) && (
+        <div className="task-row-details" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+          {task.dueDate && (
+            <div className="mono" style={{ color: 'var(--dim)', fontSize: '11px' }}>
+              DUE {task.dueDate}
+            </div>
+          )}
+          {task.estimatedMinutes && (
+            <div className="mono" style={{ color: 'var(--dim)', fontSize: '12px' }}>
+              {task.estimatedMinutes}m
+            </div>
+          )}
         </div>
       )}
     </div>

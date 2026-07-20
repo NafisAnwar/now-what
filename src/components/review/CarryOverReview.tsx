@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { carryTaskToTomorrow, markTaskMissedForDate } from '../../data/review';
-import { getTodayStr, dayAfter } from '../../utils/dateUtils';
+import { dayAfter, useTodayStr } from '../../utils/dateUtils';
 import type { Task } from '../../types';
 
 interface Props {
@@ -15,7 +15,7 @@ export default function CarryOverReview({ pendingTasks, date, onAction }: Props)
   const [resolved, setResolved] = useState<Record<string, Resolution>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
 
-  const todayStr = getTodayStr();
+  const todayStr = useTodayStr();
   // "Tomorrow" relative to the review date — if reviewing yesterday, this is today
   const carryTargetDate = dayAfter(date);
   const carryLabel = carryTargetDate === todayStr ? 'CARRY TO TODAY' : 'CARRY TO TOMORROW';

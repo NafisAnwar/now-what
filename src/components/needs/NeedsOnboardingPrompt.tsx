@@ -51,8 +51,8 @@ export default function NeedsOnboardingPrompt() {
 
   if (configuring) {
     return (
-      <Modal onClose={() => setConfiguring(false)}>
-        <section role="dialog" aria-modal="true" aria-label="Recommendation Profile">
+      <Modal onClose={() => setConfiguring(false)} ariaLabel="Recommendation Profile">
+        <section>
           <RecommendationProfilePanel
             onSaved={() => setConfiguring(false)}
             onCancel={() => setConfiguring(false)}

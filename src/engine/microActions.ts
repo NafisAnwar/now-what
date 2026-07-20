@@ -63,7 +63,7 @@ export const MICRO_ACTIONS: readonly MicroActionTemplate[] = [
   micro('planning_set_focus', 'SET PRIMARY FOCUS', 'Set one primary focus for today.', 'planning', 'plan_day', ALL_NEEDS, ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['always'], 3),
   micro('planning_next_30', 'PLAN NEXT 30 MINUTES', 'Choose one bounded action for the next 30 minutes.', 'planning', 'plan_day', EXECUTION_NEEDS, LIGHT_STATES, LIGHT_CAPACITIES, ALL_ENERGY_BANDS, ['always'], 2),
   micro('planning_review_pending', 'REVIEW PENDING TASKS', 'Scan pending tasks and identify the next concrete item.', 'planning', 'review_tasks', EXECUTION_NEEDS, ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['pending_tasks'], 2),
-  micro('planning_tomorrow_first', 'PLAN TOMORROW FIRST', 'Set tomorrow\'s first task.', 'planning', 'plan_day', EXECUTION_NEEDS, ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['activity_exists'], 6),
+  micro('planning_tomorrow_first', 'REVIEW TODAY\'S PLAN', 'Open the dashboard and adjust today\'s plan.', 'planning', 'plan_day', EXECUTION_NEEDS, ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['activity_exists'], 6),
   micro('planning_upcoming_calendar', 'CHECK UPCOMING BLOCKS', 'Review the next calendar commitments.', 'planning', 'open_calendar', ['school_work', 'life_admin', 'creative_projects'], ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['calendar_available'], 3),
   micro('planning_carry_over', 'REVIEW UNFINISHED WORK', 'Choose one unfinished task to carry forward.', 'planning', 'review_tasks', EXECUTION_NEEDS, ['neutral', 'stressed', 'overloaded'], LIGHT_CAPACITIES, ALL_ENERGY_BANDS, ['pending_tasks'], 4),
 
@@ -92,8 +92,8 @@ export const MICRO_ACTIONS: readonly MicroActionTemplate[] = [
   micro('admin_capture_inbox', 'CAPTURE ADMIN TASK', 'Add one concrete admin task.', 'admin', 'add_task', ['life_admin'], ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['no_recent_task'], 3),
   micro('admin_review_profile', 'REVIEW PROFILE SETTINGS', 'Check recommendation priorities and State Check timing.', 'maintenance', 'open_needs_profile', ALL_NEEDS, ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['always'], 12),
 
-  micro('focus_10', 'START 10-MINUTE FOCUS', 'Open Quick Log and begin a 10-minute focus block.', 'focus', 'open_quick_log', ['school_work', 'creative_projects'], WORK_STATES, WORK_CAPACITIES, ALL_ENERGY_BANDS, ['no_urgent_block'], 2),
-  micro('focus_25', 'START 25-MINUTE FOCUS', 'Open Quick Log and begin a 25-minute focus block.', 'focus', 'open_quick_log', ['school_work', 'creative_projects'], WORK_STATES, WORK_CAPACITIES, NEUTRAL_HIGH_ENERGY, ['no_urgent_block'], 2),
+  micro('focus_10', 'OPEN FOCUS LOG', 'Open Quick Log to record completed focus time.', 'focus', 'open_quick_log', ['school_work', 'creative_projects'], WORK_STATES, WORK_CAPACITIES, ALL_ENERGY_BANDS, ['no_urgent_block'], 2),
+  micro('focus_25', 'LOG FOCUS TIME', 'Open Quick Log to record a completed focus block.', 'focus', 'open_quick_log', ['school_work', 'creative_projects'], WORK_STATES, WORK_CAPACITIES, NEUTRAL_HIGH_ENERGY, ['no_urgent_block'], 2),
   micro('focus_deep_priority', 'OPEN HIGH-VALUE WORK', 'Review high-priority work for a deeper focus block.', 'focus', 'review_tasks', ['school_work', 'creative_projects'], ['clear', 'neutral'], ['deep', 'normal'], ['high'], ['pending_tasks'], 2),
   micro('focus_deadline', 'OPEN CLOSEST DEADLINE', 'Review the closest-deadline task.', 'focus', 'review_tasks', ['school_work', 'life_admin'], ALL_STATES, WORK_CAPACITIES, ALL_ENERGY_BANDS, ['pending_tasks'], 2),
   micro('focus_resume_planned', 'RESUME PLANNED WORK', 'Open the planned task list.', 'focus', 'open_tasks', ['school_work', 'creative_projects', 'life_admin'], WORK_STATES, WORK_CAPACITIES, NEUTRAL_HIGH_ENERGY, ['planned_tasks'], 2),
@@ -102,7 +102,7 @@ export const MICRO_ACTIONS: readonly MicroActionTemplate[] = [
   micro('creative_add_task', 'ADD CREATIVE TASK', 'Capture one concrete creative project task.', 'creative', 'add_task', ['creative_projects'], ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['no_recent_task'], 3),
   micro('creative_start_draft', 'OPEN CREATIVE DRAFT', 'Review creative tasks and start one draft.', 'creative', 'open_tasks', ['creative_projects'], ['clear', 'neutral', 'restless'], WORK_CAPACITIES, NEUTRAL_HIGH_ENERGY, ['pending_tasks'], 2),
   micro('creative_review_goal', 'REVIEW PROJECT GOAL', 'Review tasks linked to an active project goal.', 'creative', 'review_tasks', ['creative_projects', 'school_work'], ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['goals_available'], 4),
-  micro('creative_link_goal', 'LINK WORK TO GOAL', 'Review tasks and connect one item to an active goal.', 'creative', 'open_tasks', ['creative_projects', 'school_work', 'life_admin'], ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['goals_available', 'pending_tasks'], 6),
+  micro('creative_link_goal', 'REVIEW WORK AND GOALS', 'Open Tasks and review work against active goals.', 'creative', 'open_tasks', ['creative_projects', 'school_work', 'life_admin'], ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['goals_available', 'pending_tasks'], 6),
 
   micro('review_today_activity', 'REVIEW TODAY ACTIVITY', 'Open Daily Review for today\'s recorded activity.', 'review', 'open_review', ALL_NEEDS, ['neutral', 'stressed', 'overloaded'], ALL_CAPACITIES, ALL_ENERGY_BANDS, ['review_available'], 4),
   micro('review_complete_daily', 'COMPLETE DAILY REVIEW', 'Open the available Daily Review.', 'review', 'open_review', ['school_work', 'habit_consistency', 'health_energy', 'life_admin'], ALL_STATES, ALL_CAPACITIES, ALL_ENERGY_BANDS, ['review_available'], 6),

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import type { Goal } from '../../types';
@@ -49,6 +49,8 @@ export default function GoalModal({ goal, onClose }: Props) {
   const [linkedTaskIds, setLinkedTaskIds] = useState<string[]>(goal?.linkedTaskIds || []);
   const [linkedHabitIds, setLinkedHabitIds] = useState<string[]>(goal?.linkedHabitIds || []);
   const [reviewNotes, setReviewNotes] = useState(goal?.reviewNotes || '');
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const category = categorySelection === CUSTOM_CATEGORY_OPTION
     ? customCategory.trim()
     : categorySelection;
@@ -65,10 +67,13 @@ export default function GoalModal({ goal, onClose }: Props) {
   }, [onClose]);
 
   const handleSave = async () => {
-    if (!title.trim() || !category) return;
-    const now = new Date().toISOString();
+    if (!title.trim() || !category || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
 
-    await db.transaction('rw', db.goals, db.tasks, db.habits, async () => {
+      await db.transaction('rw', db.goals, db.tasks, db.habits, async () => {
       if (goal) {
         const thisGoalId = goal.id;
         const prevTaskIds = goal.linkedTaskIds || [];
@@ -116,8 +121,8 @@ export default function GoalModal({ goal, onClose }: Props) {
         }
 
         await db.goals.update(thisGoalId, {
-          title, category, horizon, status, linkedTaskIds, linkedHabitIds,
-          reviewNotes: reviewNotes || undefined, updatedAt: now,
+          title: title.trim(), category, horizon, status, linkedTaskIds, linkedHabitIds,
+          reviewNotes: reviewNotes.trim() || undefined, updatedAt: now,
         });
       } else {
         const newId = crypto.randomUUID();
@@ -153,27 +158,45 @@ export default function GoalModal({ goal, onClose }: Props) {
         }
 
         await db.goals.add({
-          id: newId, title, category, horizon, status: 'active',
+          id: newId, title: title.trim(), category, horizon, status: 'active',
           linkedTaskIds, linkedHabitIds,
-          reviewNotes: reviewNotes || undefined, createdAt: now, updatedAt: now,
+          reviewNotes: reviewNotes.trim() || undefined, createdAt: now, updatedAt: now,
         });
       }
-    });
+      });
 
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: goal ? 'Goal updated.' : 'Goal added.' }));
-    onClose();
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: goal ? 'Goal updated.' : 'Goal added.' }));
+      window.dispatchEvent(new Event('regenerate_now_what'));
+      onClose();
+    } catch (error) {
+      console.error('[goals] save failed:', error);
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Goal could not be saved.' }));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const handleDelete = async () => {
-    if (!goal) return;
-    const now = new Date().toISOString();
-    await db.transaction('rw', db.goals, db.tasks, db.habits, async () => {
-      await Promise.all((goal.linkedTaskIds || []).map(id => db.tasks.update(id, { goalId: undefined })));
-      await Promise.all((goal.linkedHabitIds || []).map(id => db.habits.update(id, { goalId: undefined })));
-      await db.goals.delete(goal.id);
-    });
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Goal deleted.' }));
-    onClose();
+    if (!goal || savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      await db.transaction('rw', db.goals, db.tasks, db.habits, async () => {
+        await Promise.all((goal.linkedTaskIds || []).map(id => db.tasks.update(id, { goalId: undefined })));
+        await Promise.all((goal.linkedHabitIds || []).map(id => db.habits.update(id, { goalId: undefined })));
+        await db.goals.delete(goal.id);
+      });
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Goal deleted.' }));
+      window.dispatchEvent(new Event('regenerate_now_what'));
+      onClose();
+    } catch (error) {
+      console.error('[goals] delete failed:', error);
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Goal could not be deleted.' }));
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const toggleTask = (id: string) => {
@@ -253,7 +276,7 @@ export default function GoalModal({ goal, onClose }: Props) {
           <div className="label" style={{ marginBottom: '6px' }}>HORIZON</div>
           <div style={{ display: 'flex' }}>
             {(['week', 'month', 'semester', 'year', 'ongoing'] as const).map(h => (
-              <button key={h} onClick={() => setHorizon(h)} style={segBtn(horizon === h)}>
+              <button type="button" key={h} aria-pressed={horizon === h} onClick={() => setHorizon(h)} style={segBtn(horizon === h)}>
                 {h}
               </button>
             ))}
@@ -266,7 +289,7 @@ export default function GoalModal({ goal, onClose }: Props) {
             <div className="label" style={{ marginBottom: '6px' }}>STATUS</div>
             <div style={{ display: 'flex' }}>
               {(['active', 'paused', 'complete'] as const).map(s => (
-                <button key={s} onClick={() => setStatus(s)} style={segBtn(status === s)}>
+                <button type="button" key={s} aria-pressed={status === s} onClick={() => setStatus(s)} style={segBtn(status === s)}>
                   {s}
                 </button>
               ))}
@@ -360,8 +383,9 @@ export default function GoalModal({ goal, onClose }: Props) {
 
         <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>
           <button
+            type="button"
             onClick={handleSave}
-            disabled={!title.trim() || !category}
+            disabled={!title.trim() || !category || saving}
             className="mono"
             style={{
               background: 'var(--surface2)', color: 'var(--white)',
@@ -369,10 +393,12 @@ export default function GoalModal({ goal, onClose }: Props) {
               fontSize: '12px', textTransform: 'uppercase', cursor: 'pointer', flex: 1,
             }}
           >
-            SAVE
+            {saving ? 'SAVING...' : 'SAVE'}
           </button>
           <button
+            type="button"
             onClick={onClose}
+            disabled={saving}
             className="mono"
             style={{
               background: 'transparent', color: 'var(--dim)',
@@ -384,7 +410,9 @@ export default function GoalModal({ goal, onClose }: Props) {
           </button>
           {goal && (
             <button
+              type="button"
               onClick={handleDelete}
+              disabled={saving}
               className="mono"
               style={{
                 background: 'transparent', color: 'var(--error)',

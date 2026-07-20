@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'wouter';
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
 interface Props {
   onMenuToggle: () => void;
   isOnline: boolean;
-  installPrompt: BeforeInstallPromptEvent | null;
-  onInstall: () => void;
 }
 
 export default function Topbar({ onMenuToggle, isOnline }: Props) {

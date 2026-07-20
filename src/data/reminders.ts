@@ -23,6 +23,15 @@ export const REMINDER_DEFAULTS = {
   habitWindowRemindersEnabled: true,
 };
 
+export function hasReminderGeneratingUserContext(
+  taskCount: number,
+  habitCount: number,
+  calendarBlockCount: number,
+  activityLogCount: number
+): boolean {
+  return [taskCount, habitCount, calendarBlockCount, activityLogCount].some(count => count > 0);
+}
+
 export type ReminderSettings = typeof REMINDER_DEFAULTS;
 
 export async function getReminderSettings(): Promise<ReminderSettings> {
@@ -123,15 +132,46 @@ export interface ManualReminderInput {
   note?: string;
 }
 
+export function getDefaultManualReminderDateTime(now = new Date()): { date: string; time: string } {
+  const next = new Date(now.getTime() + 60 * 60 * 1000);
+  return {
+    date: localDateStr(next),
+    time: `${String(next.getHours()).padStart(2, '0')}:${String(next.getMinutes()).padStart(2, '0')}`,
+  };
+}
+
+export function parseManualReminderDateTime(date: string, time: string): Date | null {
+  const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = time.match(/^(\d{2}):(\d{2})$/);
+  if (!dateMatch || !timeMatch) return null;
+
+  const [, year, month, day] = dateMatch.map(Number);
+  const [, hour, minute] = timeMatch.map(Number);
+  const value = new Date(year, month - 1, day, hour, minute, 0, 0);
+  if (
+    value.getFullYear() !== year ||
+    value.getMonth() !== month - 1 ||
+    value.getDate() !== day ||
+    value.getHours() !== hour ||
+    value.getMinutes() !== minute
+  ) {
+    return null;
+  }
+  return value;
+}
+
 export async function createManualReminder(input: ManualReminderInput): Promise<Reminder> {
   const title = input.title.trim();
   if (!title || !input.date || !input.time) {
     throw new Error('Manual reminder requires title, date, and time.');
   }
 
-  const scheduledDate = new Date(`${input.date}T${input.time}:00`);
-  if (Number.isNaN(scheduledDate.getTime())) {
+  const scheduledDate = parseManualReminderDateTime(input.date, input.time);
+  if (!scheduledDate) {
     throw new Error('Manual reminder date/time is invalid.');
+  }
+  if (scheduledDate.getTime() <= Date.now()) {
+    throw new Error('Manual reminder must be scheduled in the future.');
   }
   const scheduledAt = scheduledDate.toISOString();
 
@@ -222,8 +262,19 @@ export async function generateSystemRemindersForToday(): Promise<void> {
 
     // ── Cancel reminders whose habits are completed today ───────────────
     const allHabits = await db.habits.toArray();
+    const [taskCount, calendarBlockCount, activityLogCount] = await Promise.all([
+      db.tasks.count(),
+      db.calendarBlocks.count(),
+      db.activityLogs.count(),
+    ]);
+    const hasUserContext = hasReminderGeneratingUserContext(
+      taskCount,
+      allHabits.length,
+      calendarBlockCount,
+      activityLogCount
+    );
     for (const habit of allHabits) {
-      const completedToday = habit.completionHistory.some(c => c.date === todayStr);
+      const completedToday = (habit.completionHistory || []).some(c => c.date === todayStr);
       if (!completedToday) continue;
       const active = await db.reminders
         .filter(r => r.targetId === habit.id && r.type === 'habit_window' && (r.status === 'scheduled' || r.status === 'sent'))
@@ -294,7 +345,7 @@ export async function generateSystemRemindersForToday(): Promise<void> {
       const nowHHMM = `${String(hour).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       for (const habit of allHabits) {
         if (habit.frequency !== 'daily') continue;
-        if (habit.completionHistory.some(c => c.date === todayStr)) continue;
+        if ((habit.completionHistory || []).some(c => c.date === todayStr)) continue;
         if (!habit.timeWindowStart || !habit.timeWindowEnd) continue;
         // Window must be open now
         if (nowHHMM < habit.timeWindowStart || nowHHMM > habit.timeWindowEnd) continue;
@@ -384,7 +435,7 @@ export async function generateSystemRemindersForToday(): Promise<void> {
     }
 
     // ── 4.6 Hydration reminder ──────────────────────────────────────────
-    if (settings.hydrationRemindersEnabled && !inQuiet && hour >= 8) {
+    if (settings.hydrationRemindersEnabled && hasUserContext && !inQuiet && hour >= 8) {
       const waterToday = await db.activityLogs.filter(l => l.type === 'water' && localDateStr(new Date(l.createdAt)) === todayStr).toArray();
       const lastMs = waterToday.length > 0
         ? Math.max(...waterToday.map(l => new Date(l.createdAt).getTime()))
@@ -420,7 +471,7 @@ export async function generateSystemRemindersForToday(): Promise<void> {
     }
 
     // ── 4.7 Movement reminder ────────────────────────────────────────────
-    if (settings.movementRemindersEnabled && !inQuiet && hour >= 14) {
+    if (settings.movementRemindersEnabled && hasUserContext && !inQuiet && hour >= 14) {
       const movement = await db.activityLogs.filter(l => l.type === 'exercise' && localDateStr(new Date(l.createdAt)) === todayStr).toArray();
       if (movement.length === 0) {
         await ensureReminder(todayStr, 'movement', undefined, () => ({

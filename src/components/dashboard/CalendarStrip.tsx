@@ -1,11 +1,11 @@
 import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
-import { getCalendarBlocksForDate } from '../../data/calendar';
-import { getTodayStr } from '../../utils/dateUtils';
+import { getCalendarBlocksForDate, isAllDayCalendarBlock } from '../../data/calendar';
+import { useTodayStr } from '../../utils/dateUtils';
 
 export default function CalendarStrip() {
-  const todayStr = getTodayStr();
+  const todayStr = useTodayStr();
   const todaysBlocks = useLiveQuery(
     () => getCalendarBlocksForDate(db, todayStr),
     [todayStr]
@@ -35,10 +35,13 @@ export default function CalendarStrip() {
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
         {sorted.map(block => {
-          const active = nowMs >= new Date(block.startAt).getTime() && nowMs <= new Date(block.endAt).getTime();
+          const active = nowMs >= new Date(block.startAt).getTime() && nowMs < new Date(block.endAt).getTime();
+          const range = isAllDayCalendarBlock(block)
+            ? 'ALL DAY'
+            : `${fmt(block.startAt)}-${fmt(block.endAt)}`;
           return (
             <div key={block.id} className="mono" style={{ fontSize: '12px', color: 'var(--dim)' }}>
-              {fmt(block.startAt)}–{fmt(block.endAt)}&nbsp;&nbsp;{block.title}{active ? '  [NOW]' : ''}
+              {range}&nbsp;&nbsp;{block.title}{active ? '  [NOW]' : ''}
             </div>
           );
         })}

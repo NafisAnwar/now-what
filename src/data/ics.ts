@@ -75,6 +75,11 @@ function parseIcsDate(prop: IcsProperty | undefined): string | null {
 
   if (isDateOnly) {
     if (!/^\d{8}$/.test(value)) return null;
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6));
+    const day = Number(value.slice(6, 8));
+    const parsed = new Date(year, month - 1, day);
+    if (parsed.getFullYear() !== year || parsed.getMonth() !== month - 1 || parsed.getDate() !== day) return null;
     return `${value.slice(0, 4)}-${value.slice(4, 6)}-${value.slice(6, 8)}T00:00:00`;
   }
 
@@ -83,19 +88,50 @@ function parseIcsDate(prop: IcsProperty | undefined): string | null {
 
   const [, year, month, day, hour, minute, second = '00', utc] = match;
   if (utc) {
-    return formatLocalDateTime(new Date(Date.UTC(
+    const parsed = new Date(Date.UTC(
       Number(year),
       Number(month) - 1,
       Number(day),
       Number(hour),
       Number(minute),
       Number(second)
-    )));
+    ));
+    if (
+      parsed.getUTCFullYear() !== Number(year) ||
+      parsed.getUTCMonth() !== Number(month) - 1 ||
+      parsed.getUTCDate() !== Number(day) ||
+      parsed.getUTCHours() !== Number(hour) ||
+      parsed.getUTCMinutes() !== Number(minute) ||
+      parsed.getUTCSeconds() !== Number(second)
+    ) return null;
+    return formatLocalDateTime(parsed);
   }
 
   // Floating times and DTSTART;TZID=... are treated as local wall time.
   // This intentionally does not attempt VTIMEZONE conversion.
+  const parsed = new Date(
+    Number(year), Number(month) - 1, Number(day),
+    Number(hour), Number(minute), Number(second)
+  );
+  if (
+    parsed.getFullYear() !== Number(year) ||
+    parsed.getMonth() !== Number(month) - 1 ||
+    parsed.getDate() !== Number(day) ||
+    parsed.getHours() !== Number(hour) ||
+    parsed.getMinutes() !== Number(minute) ||
+    parsed.getSeconds() !== Number(second)
+  ) return null;
   return `${year}-${month}-${day}T${hour}:${minute}:${second}`;
+}
+
+function isDateOnlyProperty(prop: IcsProperty | undefined): boolean {
+  if (!prop) return false;
+  const value = prop.value.trim();
+  return prop.params.VALUE === 'DATE' || /^\d{8}$/.test(value);
+}
+
+function endOfLocalDay(value: string): string {
+  return `${value.slice(0, 10)}T23:59:59`;
 }
 
 export function parseIcsVevents(text: string): IcsParseResult {
@@ -121,7 +157,15 @@ export function parseIcsVevents(text: string): IcsParseResult {
       const startAt = parseIcsDate(current.DTSTART);
       if (!startAt) continue;
 
-      const endAt = parseIcsDate(current.DTEND) ?? startAt;
+      let endAt = parseIcsDate(current.DTEND) ?? startAt;
+      if (isDateOnlyProperty(current.DTSTART)) {
+        if (isDateOnlyProperty(current.DTEND) && endAt > startAt) {
+          endAt = formatLocalDateTime(new Date(new Date(endAt).getTime() - 1000));
+        } else if (!current.DTEND) {
+          endAt = endOfLocalDay(startAt);
+        }
+      }
+      if (new Date(endAt).getTime() < new Date(startAt).getTime()) continue;
       const recurrenceRule = current.RRULE?.value;
       if (recurrenceRule) unsupportedRecurrenceCount++;
 

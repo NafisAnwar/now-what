@@ -2,10 +2,10 @@ import React from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import type { ActivityLog } from '../../types';
-import { getTodayStr, isLocalDate } from '../../utils/dateUtils';
+import { isLocalDate, useTodayStr } from '../../utils/dateUtils';
 
 export default function Timeline() {
-  const todayStr = getTodayStr();
+  const todayStr = useTodayStr();
 
   // toArray() + JS sort gives correct descending order; Dexie's .reverse().sortBy()
   // always returns ascending regardless of .reverse() direction.

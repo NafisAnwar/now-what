@@ -156,8 +156,8 @@ export default function StateCheckPrompt() {
   if (!visible) return null;
 
   return (
-    <Modal onClose={() => { handleDismiss().catch(console.error); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="state-check-title">
+    <Modal onClose={() => { handleDismiss().catch(console.error); }} ariaLabelledBy="state-check-title">
+      <section>
         <header style={{ borderBottom: '1px solid var(--border)', paddingBottom: '12px', marginBottom: '18px' }}>
           <div id="state-check-title" className="mono" style={{ color: 'var(--primary)', fontSize: '15px' }}>
             STATE CHECK

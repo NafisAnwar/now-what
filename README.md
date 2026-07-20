@@ -25,7 +25,7 @@ npm run dev
 
 The app opens at **http://localhost:5173**
 
-On first load it seeds demo data so you can explore immediately. Clear it any time via **Data → Danger Zone → Clear all**.
+First launch creates a stable local profile with empty user-data stores. Demo data is available only through the explicit **Data → Danger Zone → Reset demo data** action.
 
 ---
 
@@ -37,6 +37,7 @@ On first load it seeds demo data so you can explore immediately. Clear it any ti
 | `npm run build` | Build for production → `dist/` |
 | `npm run preview` | Preview the production build locally |
 | `npm run typecheck` | TypeScript check (no emit) |
+| `npm run qa:v1.2` | Run deterministic engine and data-layer regression checks |
 
 ---
 
@@ -118,7 +119,7 @@ The app ships as a PWA. In a browser that supports installation (Chrome, Edge):
 
 1. Build and serve: `npm run build && npm run preview`
 2. Visit http://localhost:4173
-3. Click **INSTALL APP** in the topbar, or use the browser's install button
+3. Use the browser's install control when it is offered
 
 The service worker caches the app shell so it works offline after the first visit.
 

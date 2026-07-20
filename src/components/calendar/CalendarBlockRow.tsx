@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CalendarBlock } from '../../types';
+import { isAllDayCalendarBlock } from '../../data/calendar';
 
 interface Props {
   block: CalendarBlock;
@@ -8,7 +9,10 @@ interface Props {
 }
 
 export default function CalendarBlockRow({ block, isActive, onEdit }: Props) {
-  const fmt = (iso: string) => iso.includes('T') ? iso.split('T')[1].slice(0, 5) : '—';
+  const fmt = (iso: string) => iso.includes('T') ? iso.split('T')[1].slice(0, 5) : '--:--';
+  const timeLabel = isAllDayCalendarBlock(block)
+    ? 'ALL DAY'
+    : `${fmt(block.startAt)} - ${fmt(block.endAt)}`;
 
   return (
     <div style={{
@@ -20,7 +24,7 @@ export default function CalendarBlockRow({ block, isActive, onEdit }: Props) {
     }}>
       {/* Time range */}
       <span className="mono" style={{ fontSize: '11px', color: 'var(--dim)', flexShrink: 0, minWidth: '90px' }}>
-        {fmt(block.startAt)} – {fmt(block.endAt)}
+        {timeLabel}
       </span>
 
       {/* Title + tags */}
@@ -45,7 +49,9 @@ export default function CalendarBlockRow({ block, isActive, onEdit }: Props) {
 
       {/* Edit button */}
       <button
+        type="button"
         onClick={onEdit}
+        aria-label={`Edit calendar block ${block.title}`}
         className="mono"
         style={{
           background: 'transparent',

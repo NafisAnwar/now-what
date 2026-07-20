@@ -30,7 +30,11 @@ import type { RecommendationDeck, Suggestion } from './types';
 function NavigationHandler() {
   const [, navigate] = useLocation();
   useEffect(() => {
-    const handleFocusTask = () => navigate('/tasks');
+    const handleFocusTask = (event: Event) => {
+      const taskId = (event as CustomEvent<{ taskId?: string }>).detail?.taskId;
+      if (taskId) sessionStorage.setItem('nowwhat:focus-task', taskId);
+      navigate('/tasks');
+    };
     const handleNavigateTasks = () => navigate('/tasks');
     const handleNavigateHabits = () => navigate('/habits');
     const handleNavigateCalendar = () => navigate('/calendar');
@@ -68,6 +72,32 @@ interface DebugData {
   candidates: CandidateAction[];
   suggestion: Suggestion | null;
   deck?: RecommendationDeck | null;
+}
+
+class AppErrorBoundary extends React.Component<React.PropsWithChildren, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('[app] render failed:', error);
+  }
+
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return (
+      <div style={{ display: 'grid', placeItems: 'center', minHeight: '100vh', padding: '24px', background: 'var(--bg)' }}>
+        <div className="mono" style={{ color: 'var(--body)', textAlign: 'center' }}>
+          <div style={{ marginBottom: '16px' }}>THE APP COULD NOT RENDER THIS VIEW.</div>
+          <button type="button" onClick={() => window.location.reload()} className="mono">
+            [RELOAD]
+          </button>
+        </div>
+      </div>
+    );
+  }
 }
 
 function NotFound() {
@@ -122,9 +152,7 @@ export default function App() {
       }
 
       const swUrl = import.meta.env.BASE_URL + 'service-worker.js';
-      navigator.serviceWorker.register(swUrl)
-        .then(reg => console.log('[sw] registered, scope:', reg.scope))
-        .catch(err => console.log('[sw] registration skipped:', err.message));
+      navigator.serviceWorker.register(swUrl).catch(() => undefined);
     }
   }, []);
 
@@ -250,28 +278,30 @@ export default function App() {
 
   return (
     <ToastProvider>
-      <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-        <NavigationHandler />
-        <AppShell>
-          <Router />
-        </AppShell>
-        <TutorialPrompt />
-        <NeedsOnboardingPrompt />
-      </WouterRouter>
-      <StateCheckPrompt />
-      {isTaskModalOpen && <TaskModal onClose={() => setIsTaskModalOpen(false)} />}
-      {isHabitModalOpen && <HabitModal onClose={() => setIsHabitModalOpen(false)} />}
-      {isGoalModalOpen && <GoalModal onClose={() => setIsGoalModalOpen(false)} />}
-      {isCalendarBlockModalOpen && (
-        <CalendarBlockModal
-          onClose={() => setIsCalendarBlockModalOpen(false)}
-          onSaved={() => {
-            window.dispatchEvent(new Event('regenerate_now_what'));
-          }}
-        />
-      )}
-      {isQuickLogModalOpen && <QuickLogModal onClose={() => setIsQuickLogModalOpen(false)} />}
-      {debugOpen && debugData && <EngineDebugPanel {...debugData} onClose={() => setDebugOpen(false)} />}
+      <AppErrorBoundary>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+          <NavigationHandler />
+          <AppShell>
+            <Router />
+          </AppShell>
+          <TutorialPrompt />
+          <NeedsOnboardingPrompt />
+        </WouterRouter>
+        <StateCheckPrompt />
+        {isTaskModalOpen && <TaskModal onClose={() => setIsTaskModalOpen(false)} />}
+        {isHabitModalOpen && <HabitModal onClose={() => setIsHabitModalOpen(false)} />}
+        {isGoalModalOpen && <GoalModal onClose={() => setIsGoalModalOpen(false)} />}
+        {isCalendarBlockModalOpen && (
+          <CalendarBlockModal
+            onClose={() => setIsCalendarBlockModalOpen(false)}
+            onSaved={() => {
+              window.dispatchEvent(new Event('regenerate_now_what'));
+            }}
+          />
+        )}
+        {isQuickLogModalOpen && <QuickLogModal onClose={() => setIsQuickLogModalOpen(false)} />}
+        {debugOpen && debugData && <EngineDebugPanel {...debugData} onClose={() => setDebugOpen(false)} />}
+      </AppErrorBoundary>
     </ToastProvider>
   );
 }

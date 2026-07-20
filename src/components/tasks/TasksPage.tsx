@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../../data/db';
 import TaskRow from './TaskRow';
 import { Task } from '../../types';
+import { completeTask } from '../../data/completions';
 
 export default function TasksPage() {
   const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'COMPLETE'>('PENDING');
@@ -14,21 +15,23 @@ export default function TasksPage() {
     },
     [filter]
   );
+  const goals = useLiveQuery(() => db.goals.toArray(), []) ?? [];
+
+  useEffect(() => {
+    if (!tasks) return;
+    const taskId = sessionStorage.getItem('nowwhat:focus-task');
+    if (!taskId) return;
+    sessionStorage.removeItem('nowwhat:focus-task');
+    window.requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`[data-task-id="${CSS.escape(taskId)}"]`);
+      row?.scrollIntoView({ block: 'center' });
+      row?.querySelector<HTMLElement>('button:not(:disabled)')?.focus();
+    });
+  }, [tasks]);
 
   const handleComplete = async (task: Task) => {
-    await db.tasks.update(task.id, { 
-      status: 'complete', 
-      completedAt: new Date().toISOString() 
-    });
-    
-    await db.activityLogs.add({
-      id: crypto.randomUUID(),
-      type: 'task_completed',
-      label: task.title,
-      relatedTaskId: task.id,
-      createdAt: new Date().toISOString()
-    });
-
+    const completed = await completeTask(task.id);
+    if (!completed) return;
     window.dispatchEvent(new Event('regenerate_now_what'));
     window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Task completed.' }));
   };
@@ -79,7 +82,12 @@ export default function TasksPage() {
         {!tasks && <div className="mono label">LOADING...</div>}
         {tasks && tasks.length === 0 && <div className="mono label">No tasks found</div>}
         {tasks && tasks.map(task => (
-          <TaskRow key={task.id} task={task} onComplete={task.status === 'pending' ? () => handleComplete(task) : undefined} />
+          <TaskRow
+            key={task.id}
+            task={task}
+            goalTitle={goals.find(goal => goal.id === task.goalId)?.title}
+            onComplete={task.status === 'pending' ? () => handleComplete(task) : undefined}
+          />
         ))}
       </div>
     </div>

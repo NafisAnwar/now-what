@@ -9,11 +9,12 @@ import {
   completeReminder,
   REMINDER_DEFAULTS,
 } from '../../data/reminders';
-import { getTodayStr } from '../../utils/dateUtils';
+import { completeHabit } from '../../data/completions';
 
 export default function InAppReminderTray() {
   const [, navigate] = useLocation();
   const markedRef = useRef<Set<string>>(new Set());
+  const actionInFlightRef = useRef<Set<string>>(new Set());
   const [nowTick, setNowTick] = useState(() => Date.now());
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export default function InAppReminderTray() {
       .toArray() as Reminder[];
     return active.filter(r => r.enabled && r.scheduledAt <= now);
   }, [nowTick]);
+  const habits = useLiveQuery(() => db.habits.toArray(), []) ?? [];
 
   // Mark new scheduled reminders as sent when they appear
   // (Scheduler is driven by App.tsx on mount + 5-min interval)
@@ -67,8 +69,8 @@ export default function InAppReminderTray() {
         navigate('/review');
         break;
       case 'previous_review':
-        window.dispatchEvent(new CustomEvent('navigate_review_yesterday'));
         navigate('/review');
+        window.setTimeout(() => window.dispatchEvent(new Event('navigate_review_yesterday')), 0);
         break;
       case 'hydration':
       case 'movement':
@@ -90,45 +92,55 @@ export default function InAppReminderTray() {
   ].includes(r.type);
 
   const handleLogWater = async (r: Reminder) => {
-    await db.activityLogs.add({
-      id: crypto.randomUUID(),
-      type: 'water',
-      label: 'Water (reminder)',
-      quantity: 250,
-      unit: 'ml',
-      createdAt: new Date().toISOString(),
-    } as never);
-    await completeReminder(r.id);
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: '250ml logged.' }));
-    window.dispatchEvent(new Event('regenerate_now_what'));
+    if (actionInFlightRef.current.has(r.id)) return;
+    actionInFlightRef.current.add(r.id);
+    try {
+      const logged = await db.transaction('rw', db.activityLogs, db.reminders, async () => {
+        const current = await db.reminders.get(r.id);
+        if (!current || ['completed', 'dismissed', 'cancelled'].includes(current.status)) return false;
+        const now = new Date().toISOString();
+        await db.activityLogs.add({
+          id: crypto.randomUUID(),
+          type: 'water',
+          label: 'Water (reminder)',
+          quantity: 250,
+          unit: 'ml',
+          createdAt: now,
+        } as never);
+        await db.reminders.update(r.id, { status: 'completed', updatedAt: now } as never);
+        return true;
+      });
+      if (logged) {
+        window.dispatchEvent(new CustomEvent('show_toast', { detail: '250ml logged.' }));
+        window.dispatchEvent(new Event('regenerate_now_what'));
+      }
+    } finally {
+      actionInFlightRef.current.delete(r.id);
+    }
   };
 
   const handleCompleteHabit = async (r: Reminder) => {
-    if (!r.targetId) return;
-    const habit = await db.habits.get(r.targetId);
-    if (!habit) return;
-    const todayStr = getTodayStr();
-    if (!habit.completionHistory.some((c: { date: string }) => c.date === todayStr)) {
-      const now = new Date().toISOString();
-      await db.habits.update(r.targetId, {
-        completionHistory: [...habit.completionHistory, { date: todayStr, value: 1, completedAt: now }],
-        updatedAt: now,
-      });
-      await db.activityLogs.add({
-        id: crypto.randomUUID(),
-        type: 'habit_completed',
-        label: `Habit: ${habit.name}`,
-        relatedHabitId: habit.id,
-        createdAt: now,
-      } as never);
+    if (!r.targetId || actionInFlightRef.current.has(r.id)) return;
+    actionInFlightRef.current.add(r.id);
+    try {
+      const habit = await db.habits.get(r.targetId);
+      if (!habit || habit.completionType !== 'boolean') return;
+      await completeHabit(habit.id);
+      await completeReminder(r.id);
+      window.dispatchEvent(new CustomEvent('show_toast', { detail: `${habit.name} marked complete.` }));
+      window.dispatchEvent(new Event('regenerate_now_what'));
+    } finally {
+      actionInFlightRef.current.delete(r.id);
     }
-    await completeReminder(r.id);
-    window.dispatchEvent(new CustomEvent('show_toast', { detail: `${habit.name} marked complete.` }));
-    window.dispatchEvent(new Event('regenerate_now_what'));
   };
 
+  const canCompleteHabit = (r: Reminder) =>
+    r.type === 'habit_window' &&
+    Boolean(r.targetId) &&
+    habits.some(habit => habit.id === r.targetId && habit.completionType === 'boolean');
+
   return (
-    <div style={{
+    <div className="reminder-tray" style={{
       borderTop: '1px solid var(--border)',
       borderBottom: '1px solid var(--border)',
       padding: '8px 0',
@@ -150,6 +162,7 @@ export default function InAppReminderTray() {
       {dueReminders.map(r => (
         <div
           key={r.id}
+          className="reminder-tray-row"
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -169,9 +182,10 @@ export default function InAppReminderTray() {
             )}
           </div>
 
-          <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+          <div className="reminder-tray-actions" style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
             {r.type === 'hydration' && (
               <button
+                type="button"
                 onClick={() => handleLogWater(r)}
                 className="mono"
                 style={actionBtn}
@@ -179,8 +193,9 @@ export default function InAppReminderTray() {
                 [LOG WATER]
               </button>
             )}
-            {r.type === 'habit_window' && r.targetId && (
+            {canCompleteHabit(r) && (
               <button
+                type="button"
                 onClick={() => handleCompleteHabit(r)}
                 className="mono"
                 style={actionBtn}
@@ -190,7 +205,9 @@ export default function InAppReminderTray() {
             )}
             {canOpenReminder(r) && (
               <button
+                type="button"
                 onClick={() => handleOpen(r)}
+                aria-label={`Open reminder ${r.title}`}
                 className="mono"
                 style={actionBtn}
               >
@@ -198,7 +215,9 @@ export default function InAppReminderTray() {
               </button>
             )}
             <button
+              type="button"
               onClick={() => dismissReminder(r.id)}
+              aria-label={`Dismiss reminder ${r.title}`}
               className="mono"
               style={dimBtn}
             >

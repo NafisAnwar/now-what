@@ -4,7 +4,7 @@ import { db } from '../../data/db';
 import HabitRow from './HabitRow';
 import HabitModal from './HabitModal';
 import type { Habit } from '../../types';
-import { getTodayStr } from '../../utils/dateUtils';
+import { completeHabit } from '../../data/completions';
 
 export default function HabitsPage() {
   const habits = useLiveQuery(() => db.habits.toArray());
@@ -23,23 +23,8 @@ export default function HabitsPage() {
   });
 
   const handleComplete = async (habit: Habit, value?: number) => {
-    const todayStr = getTodayStr();
-    const now = new Date().toISOString();
-    
-    await db.habits.update(habit.id, {
-      completionHistory: [...habit.completionHistory, { date: todayStr, value, completedAt: now }]
-    });
-
-    await db.activityLogs.add({
-      id: crypto.randomUUID(),
-      type: 'habit_completed',
-      label: habit.name,
-      relatedHabitId: habit.id,
-      quantity: value,
-      unit: habit.targetUnit,
-      createdAt: now
-    });
-
+    const completed = await completeHabit(habit.id, value);
+    if (!completed) return;
     window.dispatchEvent(new CustomEvent('show_toast', { detail: 'Habit completed.' }));
     window.dispatchEvent(new Event('regenerate_now_what'));
   };

@@ -177,6 +177,12 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
   }
 
   for (const habit of habits) {
+    if (!Array.isArray(habit.completionHistory)) {
+      issues.push({
+        type: 'error', store: 'habits', id: habit.id,
+        message: `Habit "${habit.name}" has invalid completion history.`,
+      });
+    }
     if (habit.goalId && !goalIds.has(habit.goalId)) {
       issues.push({
         type: 'warning', store: 'habits', id: habit.id,
@@ -318,12 +324,14 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
   // ── Calendar block integrity ─────────────────────────────────────────────
 
   for (const block of calendarBlocks) {
-    if (!block.startAt || !block.endAt) {
+    const startMs = new Date(block.startAt).getTime();
+    const endMs = new Date(block.endAt).getTime();
+    if (!block.startAt || !block.endAt || !Number.isFinite(startMs) || !Number.isFinite(endMs)) {
       issues.push({
         type: 'error', store: 'calendarBlocks', id: block.id,
-        message: `Calendar block "${block.title}" is missing start or end time.`,
+        message: `Calendar block "${block.title}" has an invalid start or end time.`,
       });
-    } else if (new Date(block.endAt).getTime() < new Date(block.startAt).getTime()) {
+    } else if (endMs < startMs) {
       issues.push({
         type: 'warning', store: 'calendarBlocks', id: block.id,
         message: `Calendar block "${block.title}" end time is before start time.`,
@@ -368,8 +376,8 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
   // ── ActivityLog integrity ────────────────────────────────────────────────
 
   for (const log of activityLogs) {
-    if (!log.createdAt) {
-      issues.push({ type: 'error', store: 'activityLogs', id: log.id, message: 'Activity log is missing createdAt.' });
+    if (!log.createdAt || !Number.isFinite(new Date(log.createdAt).getTime())) {
+      issues.push({ type: 'error', store: 'activityLogs', id: log.id, message: 'Activity log has invalid createdAt.' });
     }
     if (!log.type) {
       issues.push({ type: 'error', store: 'activityLogs', id: log.id, message: 'Activity log is missing type.' });
@@ -414,6 +422,21 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
         message: `${log.type === 'energy' ? 'Energy' : 'Mood'} log must have a value from 1 to 5.`,
       });
     }
+    if (
+      ['focus', 'exercise', 'rest', 'distraction'].includes(log.type) &&
+      (
+        typeof log.durationMinutes !== 'number' ||
+        !Number.isInteger(log.durationMinutes) ||
+        log.durationMinutes < 1
+      )
+    ) {
+      issues.push({
+        type: 'error',
+        store: 'activityLogs',
+        id: log.id,
+        message: `${log.type} log must have a positive whole-minute duration.`,
+      });
+    }
   }
 
   // ── Reminder integrity ───────────────────────────────────────────────────
@@ -429,8 +452,8 @@ export async function runIntegrityChecks(): Promise<IntegrityReport> {
     if (!r.type || !validTypes.has(r.type)) {
       issues.push({ type: 'error', store: 'reminders', id: r.id, message: `Reminder has invalid or missing type: "${r.type}".` });
     }
-    if (!r.scheduledAt) {
-      issues.push({ type: 'error', store: 'reminders', id: r.id, message: `Reminder "${r.title}" is missing scheduledAt.` });
+    if (!r.scheduledAt || !Number.isFinite(new Date(r.scheduledAt).getTime())) {
+      issues.push({ type: 'error', store: 'reminders', id: r.id, message: `Reminder "${r.title}" has invalid scheduledAt.` });
     }
     if (!r.status || !validStatuses.has(r.status)) {
       issues.push({ type: 'error', store: 'reminders', id: r.id, message: `Reminder "${r.title}" has invalid status: "${r.status}".` });
