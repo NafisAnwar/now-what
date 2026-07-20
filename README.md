@@ -1,8 +1,8 @@
 # NOW_WHAT?
 
-A local-first personal daily command system. No account, no server, no cloud — everything lives in your browser's IndexedDB via [Dexie](https://dexie.org/).
+A local-first personal daily command system. No account, server-side data store, or required cloud sync - app records live in your browser's IndexedDB via [Dexie](https://dexie.org/).
 
-**v1.1** - Tasks · Habits · Goals · Daily Plan · Calendar · Review · Reminders · Timeline · PWA-ready
+**v1.2 beta** - Tasks · Habits · Goals · Daily Plan · Calendar · Review · Reminders · Timeline · rule-based recommendation deck · PWA-ready
 
 ---
 
@@ -10,7 +10,7 @@ A local-first personal daily command system. No account, no server, no cloud —
 
 ### Requirements
 
-- **Node.js** 20 or later — https://nodejs.org
+- **Node.js** 22.14.0 (pinned in `.nvmrc`) — https://nodejs.org
 - **npm** 10+ (comes with Node), or **pnpm** 9+, or **yarn** 4+
 
 ### Install & Run
@@ -56,10 +56,18 @@ First launch creates a stable local profile with empty user-data stores. Demo da
 
 ## Data & Privacy
 
-- **All data is stored locally** in your browser's IndexedDB. Nothing is sent to any server.
+- **All app records are stored locally** in your browser's IndexedDB. They are not uploaded to the static host.
 - **Export** your data any time: Data → Export (downloads a JSON file).
 - **Import** a backup: Data → Import.
 - If you clear browser storage or switch browsers, your data will be gone — export first.
+
+---
+
+## Beta Deployment
+
+- [Cloudflare beta deployment runbook](docs/CLOUDFLARE_BETA_DEPLOYMENT.md)
+- [Beta tester guide](docs/BETA_TESTER_GUIDE.md)
+- [Beta feedback template](docs/BETA_FEEDBACK_TEMPLATE.md)
 
 ---
 

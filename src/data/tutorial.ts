@@ -1,6 +1,7 @@
 import { db, PROFILE_SCHEMA_VERSION } from './db';
 import { getActiveProfileRecord } from './profile';
 import type { Settings } from '../types';
+import { APP_VERSION } from '../constants/version';
 
 export interface TutorialStatus {
   settings: Settings;
@@ -16,7 +17,7 @@ async function getOrCreateSettings(): Promise<Settings> {
   const settings: Settings = {
     id: crypto.randomUUID(),
     theme: 'dark',
-    appVersion: '1.1.0',
+    appVersion: APP_VERSION,
     schemaVersion: PROFILE_SCHEMA_VERSION,
     localProfileId: profile?.id,
     createdAt: now,

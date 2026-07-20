@@ -5,6 +5,7 @@ import { getSettingsInfo } from '../../data/exportImport';
 import { getActiveProfileRecord, type LocalProfile } from '../../data/profile';
 import { useState, useEffect } from 'react';
 import type { Settings } from '../../types';
+import { APP_VERSION_DISPLAY } from '../../constants/version';
 
 const row: React.CSSProperties = {
   display: 'flex',
@@ -62,7 +63,7 @@ export default function SchemaPanel() {
     <div>
       <div style={sectionLabel}>SYSTEM</div>
       <div style={row}><span style={labelStyle}>App</span><span style={valueStyle}>NOW_WHAT?</span></div>
-      <div style={row}><span style={labelStyle}>Version</span><span style={valueStyle}>v1.1</span></div>
+      <div style={row}><span style={labelStyle}>Version</span><span style={valueStyle}>{APP_VERSION_DISPLAY}</span></div>
       <div style={row}><span style={labelStyle}>Local Profile ID</span><span style={valueStyle}>{profile?.id ?? '—'}</span></div>
       <div style={row}><span style={labelStyle}>Profile name</span><span style={valueStyle}>{profile?.displayName ?? '—'}</span></div>
       <div style={row}>

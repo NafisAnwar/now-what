@@ -3,6 +3,7 @@ import { PROFILE_SCHEMA_VERSION } from './db';
 import { getOrCreateNeedsProfile, updateNeedsProfile } from './needsProfile';
 import { getActiveProfileRecord } from './profile';
 import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggestion, DailyReview, WeeklyReview, Settings, Reminder, NeedsProfile } from '../types';
+import { APP_VERSION } from '../constants/version';
 
 export const EXPORT_VERSION = 3;
 export const SCHEMA_VERSION = PROFILE_SCHEMA_VERSION;
@@ -162,7 +163,7 @@ async function getOrCreateSettings(): Promise<Settings> {
   const s: Settings = {
     id: crypto.randomUUID(),
     theme: 'dark',
-    appVersion: '1.1.0',
+    appVersion: APP_VERSION,
     schemaVersion: SCHEMA_VERSION,
     localProfileId: profile?.id,
     createdAt: now,

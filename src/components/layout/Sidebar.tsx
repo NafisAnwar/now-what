@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'wouter';
+import { APP_VERSION_DISPLAY } from '../../constants/version';
 
 interface Props {
   isOpen: boolean;
@@ -97,7 +98,7 @@ export default function Sidebar({ isOpen, onClose }: Props) {
             </span>
           </Link>
           <div style={{ padding: '12px 16px', color: 'var(--dim)', fontSize: '10px' }} className="mono">
-            v1.1
+            {APP_VERSION_DISPLAY}
           </div>
         </div>
       </aside>

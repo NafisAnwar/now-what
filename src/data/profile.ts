@@ -1,5 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import type { Settings } from '../types';
+import { APP_VERSION } from '../constants/version';
 import {
   DEFAULT_LEGACY_DB_NAME,
   PROFILE_SCHEMA_VERSION,
@@ -43,8 +44,6 @@ export const metaDb = new NowWhatMetaDB();
 
 const ACTIVE_PROFILE_KEY = 'activeProfileId';
 const LEGACY_MIGRATION_KEY_PREFIX = 'legacyMigration';
-const APP_VERSION = '1.1.0';
-
 export function getProfileDbName(profileId: string): string {
   return `nowwhat_profile_${profileId}`;
 }
@@ -239,7 +238,7 @@ export async function ensureProfileSettings(profile: LocalProfile): Promise<Sett
   const updates: Partial<Settings> = {};
   if (current.localProfileId !== profile.id) updates.localProfileId = profile.id;
   if (current.schemaVersion !== PROFILE_SCHEMA_VERSION) updates.schemaVersion = PROFILE_SCHEMA_VERSION;
-  if (!current.appVersion) updates.appVersion = APP_VERSION;
+  if (current.appVersion !== APP_VERSION) updates.appVersion = APP_VERSION;
 
   if (Object.keys(updates).length > 0) {
     await activeDb.settings.update(current.id, { ...updates, updatedAt: now } as never);

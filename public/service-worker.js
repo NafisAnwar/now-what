@@ -1,6 +1,6 @@
-// NOW_WHAT? Service Worker - cache revision 1.1.1
+// NOW_WHAT? Service Worker - cache revision 1.2.0-beta.1
 const CACHE_PREFIX = 'nowwhat-shell-';
-const CACHE_NAME = `${CACHE_PREFIX}v1.1.1`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.2.0-beta.1`;
 const FONT_ORIGINS = new Set([
   'https://fonts.googleapis.com',
   'https://fonts.gstatic.com',
