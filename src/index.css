@@ -133,6 +133,29 @@ body::before {
   filter: none;
 }
 
+.topbar-quick-log {
+  min-height: 32px;
+  min-width: 0;
+  padding: 0 10px;
+  border: 1px solid var(--border-mid);
+  background: transparent;
+  color: var(--body);
+  font-size: 10px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.topbar-quick-log:hover {
+  border-color: var(--border-hi);
+  background: var(--surface2);
+  color: var(--primary);
+  filter: none;
+}
+
+.topbar-quick-log:active {
+  background: var(--border);
+}
+
 .sidebar-link {
   height: 44px;
   display: flex;
@@ -738,6 +761,26 @@ body::before {
   /* Hamburger visible */
   .hamburger-btn { display: block !important; }
 
+  .app-topbar {
+    padding: 0 10px !important;
+    gap: 8px !important;
+  }
+
+  .topbar-left,
+  .topbar-status {
+    gap: 6px !important;
+  }
+
+  .topbar-clock {
+    font-size: 11px !important;
+  }
+
+  .topbar-quick-log {
+    min-height: 36px;
+    padding: 0 8px;
+    font-size: 9px;
+  }
+
   /* Sidebar: hidden off-screen, slides in when open */
   .sidebar {
     position: fixed !important;
@@ -760,6 +803,36 @@ body::before {
 
   /* Topbar: install button text shortened */
   .topbar-install { font-size: 9px !important; }
+}
+
+@media (max-width: 359px) {
+  .app-topbar {
+    padding: 0 6px !important;
+    gap: 4px !important;
+  }
+
+  .topbar-left,
+  .topbar-status {
+    gap: 4px !important;
+  }
+
+  .topbar-logo {
+    font-size: 12px !important;
+  }
+
+  .topbar-clock {
+    font-size: 10px !important;
+  }
+
+  .topbar-offline {
+    padding: 1px 3px !important;
+    font-size: 7px !important;
+  }
+
+  .topbar-quick-log {
+    padding: 0 5px;
+    font-size: 8px;
+  }
 }
 
 /* ── Touch targets ───────────────────────────────────────────────────────── */

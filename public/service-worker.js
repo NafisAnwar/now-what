@@ -1,6 +1,6 @@
-// NOW_WHAT? Service Worker - cache revision 1.2.0-beta.1
+// NOW_WHAT? Service Worker - cache revision 1.2.0-beta.1-r2
 const CACHE_PREFIX = 'nowwhat-shell-';
-const CACHE_NAME = `${CACHE_PREFIX}v1.2.0-beta.1`;
+const CACHE_NAME = `${CACHE_PREFIX}v1.2.0-beta.1-r2`;
 const FONT_ORIGINS = new Set([
   'https://fonts.googleapis.com',
   'https://fonts.gstatic.com',
@@ -11,9 +11,9 @@ const SHELL_URLS = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/now_what-transparent_white.png',
-  '/icon-192.svg',
-  '/icon-512.svg',
+  '/apple-touch-icon.png',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
 function absoluteUrl(url) {

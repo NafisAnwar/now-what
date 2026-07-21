@@ -20,7 +20,7 @@ export default function Topbar({ onMenuToggle, isOnline }: Props) {
   }, []);
 
   return (
-    <header style={{
+    <header className="app-topbar" style={{
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
@@ -32,7 +32,7 @@ export default function Topbar({ onMenuToggle, isOnline }: Props) {
       gap: '16px',
     }}>
       {/* Left: hamburger (mobile) + app name */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+      <div className="topbar-left" style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
         <button
           onClick={onMenuToggle}
           aria-label="Toggle navigation"
@@ -66,12 +66,12 @@ export default function Topbar({ onMenuToggle, isOnline }: Props) {
         </Link>
       </div>
 
-      {/* Right: status + install + clock */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+      {/* Right: status + clock + Quick Log */}
+      <div className="topbar-status" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
         {/* Offline indicator */}
         {!isOnline && (
           <span
-            className="mono"
+            className="mono topbar-offline"
             style={{ fontSize: '9px', color: 'var(--dim)', textTransform: 'uppercase', letterSpacing: '0.08em', border: '1px solid var(--border)', padding: '1px 4px' }}
           >
             OFFLINE
@@ -79,9 +79,19 @@ export default function Topbar({ onMenuToggle, isOnline }: Props) {
         )}
 
         {/* Clock */}
-        <div className="mono" style={{ fontSize: '13px', letterSpacing: '0.05em', color: 'var(--body)', flexShrink: 0 }}>
+        <div className="mono topbar-clock" style={{ fontSize: '13px', letterSpacing: '0.05em', color: 'var(--body)', flexShrink: 0 }}>
           {time}
         </div>
+
+        <button
+          type="button"
+          className="mono topbar-quick-log"
+          aria-label="Open Quick Log"
+          aria-haspopup="dialog"
+          onClick={() => window.dispatchEvent(new Event('open_quick_log'))}
+        >
+          [QUICK LOG]
+        </button>
       </div>
     </header>
   );
