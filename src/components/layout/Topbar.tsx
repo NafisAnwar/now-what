@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'wouter';
+import { UserAuthBadge } from '../auth/AuthModal';
 
 interface Props {
   onMenuToggle: () => void;
@@ -66,8 +67,11 @@ export default function Topbar({ onMenuToggle, isOnline }: Props) {
         </Link>
       </div>
 
-      {/* Right: status + clock + Quick Log */}
-      <div className="topbar-status" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+      {/* Right: status + Google Auth + clock + Quick Log */}
+      <div className="topbar-status" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+        {/* Google Authentication */}
+        <UserAuthBadge />
+
         {/* Offline indicator */}
         {!isOnline && (
           <span
