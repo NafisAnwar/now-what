@@ -1,30 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import SchemaPanel from './SchemaPanel';
 import ExportPanel from './ExportPanel';
 import ImportPanel from './ImportPanel';
 import IntegrityPanel from './IntegrityPanel';
 import DangerZone from './DangerZone';
-import RecommendationProfilePanel from '../needs/RecommendationProfilePanel';
 
-type Tab = 'schema' | 'profile' | 'export' | 'import' | 'integrity' | 'danger';
-
-function getRequestedTab(): Tab {
-  const requestedTab = sessionStorage.getItem('nowwhat:data-tab');
-  return requestedTab === 'profile' ? 'profile' : 'schema';
-}
+type Tab = 'schema' | 'export' | 'import' | 'integrity' | 'danger';
 
 export default function DataPage() {
-  const [activeTab, setActiveTab] = useState<Tab>(getRequestedTab);
-
-  useEffect(() => {
-    sessionStorage.removeItem('nowwhat:data-tab');
-    const handleProfileRequest = () => {
-      sessionStorage.removeItem('nowwhat:data-tab');
-      setActiveTab('profile');
-    };
-    window.addEventListener('select_recommendation_profile_tab', handleProfileRequest);
-    return () => window.removeEventListener('select_recommendation_profile_tab', handleProfileRequest);
-  }, []);
+  const [activeTab, setActiveTab] = useState<Tab>('schema');
 
   const tabBtn = (tab: Tab, label: string): React.ReactElement => {
     const active = activeTab === tab;
@@ -75,7 +59,6 @@ export default function DataPage() {
         overflowX: 'auto',
       }}>
         {tabBtn('schema', 'STATUS')}
-        {tabBtn('profile', 'PROFILE')}
         {tabBtn('export', 'EXPORT')}
         {tabBtn('import', 'IMPORT')}
         {tabBtn('integrity', 'INTEGRITY')}
@@ -83,7 +66,6 @@ export default function DataPage() {
       </div>
 
       {activeTab === 'schema' && <SchemaPanel />}
-      {activeTab === 'profile' && <RecommendationProfilePanel />}
       {activeTab === 'export' && <ExportPanel />}
       {activeTab === 'import' && <ImportPanel />}
       {activeTab === 'integrity' && <IntegrityPanel />}

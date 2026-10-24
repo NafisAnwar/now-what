@@ -12,13 +12,10 @@ export default function Sidebar({ isOpen, onClose }: Props) {
 
   const navItems = [
     { label: 'DASHBOARD', path: '/' },
+    { label: 'CHAT', path: '/chat' },
     { label: 'TASKS', path: '/tasks' },
-    { label: 'HABITS', path: '/habits' },
-    { label: 'GOALS', path: '/goals' },
     { label: 'CALENDAR', path: '/calendar' },
-    { label: 'REVIEW', path: '/review' },
-    { label: 'REMINDERS', path: '/reminders' },
-    { label: 'TIMELINE', path: '/timeline' },
+    { label: 'WORKOUT', path: '/workouts' },
     { label: 'DATA', path: '/data' },
   ];
   const guideActive = location === '/guide';

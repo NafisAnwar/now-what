@@ -1,8 +1,8 @@
 import Dexie, { type Table } from 'dexie';
-import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggestion, DailyReview, WeeklyReview, Settings, Reminder, NeedsProfile } from '../types';
+import type { Task, Habit, Goal, CalendarBlock, ActivityLog, DailyPlan, Suggestion, DailyReview, WeeklyReview, Settings, Reminder, NeedsProfile, Workout } from '../types';
 
 export const DEFAULT_LEGACY_DB_NAME = 'nowwhat_db';
-export const PROFILE_SCHEMA_VERSION = 3;
+export const PROFILE_SCHEMA_VERSION = 4;
 
 export class NowWhatDB extends Dexie {
   settings!: Table<Settings, string>;
@@ -17,6 +17,7 @@ export class NowWhatDB extends Dexie {
   weeklyReviews!: Table<WeeklyReview, string>;
   reminders!: Table<Reminder, string>;
   needsProfiles!: Table<NeedsProfile, string>;
+  workouts!: Table<Workout, string>;
 
   constructor(dbName = DEFAULT_LEGACY_DB_NAME) {
     super(dbName);
@@ -39,6 +40,10 @@ export class NowWhatDB extends Dexie {
     // Version 3: adds profile-scoped recommendation preference data.
     this.version(3).stores({
       needsProfiles: 'id',
+    });
+    // Version 4: adds workouts store.
+    this.version(4).stores({
+      workouts: 'id, date, completed, createdAt',
     });
   }
 }

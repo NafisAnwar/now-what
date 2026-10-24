@@ -395,3 +395,31 @@ export interface Reminder {
   updatedAt: string;
   sentAt?: string;
 }
+
+export interface WorkoutSet {
+  id: string;
+  setNumber: number;
+  reps?: number;
+  weightLbs?: number;
+  completed: boolean;
+}
+
+export interface WorkoutExercise {
+  id: string;
+  name: string;
+  sets: WorkoutSet[];
+  notes?: string;
+}
+
+export interface Workout {
+  id: string;
+  title: string;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:MM
+  durationMinutes?: number;
+  exercises: WorkoutExercise[];
+  notes?: string;
+  completed: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
