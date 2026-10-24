@@ -23,6 +23,9 @@ import CalendarBlockModal from './components/calendar/CalendarBlockModal';
 import QuickLogModal from './components/quicklog/QuickLogModal';
 import EngineDebugPanel from './components/debug/EngineDebugPanel';
 import { ToastProvider } from './components/ui/Toast';
+import { useAuth } from './context/AuthContext';
+import { LoginScreen } from './components/auth/LoginScreen';
+import { VerifyEmailScreen } from './components/auth/VerifyEmailScreen';
 import type { Context, CandidateAction } from './engine/nowWhat';
 import type { RecommendationDeck, Suggestion } from './types';
 
@@ -265,6 +268,28 @@ export default function App() {
       window.removeEventListener('engine_debug_update', handleDebugUpdate);
     };
   }, []);
+
+  const { user, loading: authLoading } = useAuth();
+
+  if (authLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+        <div className="mono" style={{ color: 'var(--dim)', fontSize: '14px', letterSpacing: '0.1em' }}>
+          [LOADING AUTHENTICATION...]
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <LoginScreen />;
+  }
+
+  // If signed in with email/password and email is not verified yet, require verification
+  const isPasswordProvider = user.providerData.some(p => p.providerId === 'password');
+  if (isPasswordProvider && !user.emailVerified) {
+    return <VerifyEmailScreen />;
+  }
 
   if (bootError) {
     return (
